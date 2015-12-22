@@ -12,13 +12,15 @@
 
 package com.rmn.qa;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.remote.CapabilityType;
-
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.Platform;
+import org.openqa.selenium.remote.CapabilityType;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Represents a run request which will typically be sent in by a test run requesting resources.  Used
@@ -184,7 +186,13 @@ public final class AutomationRunRequest {
     public boolean matchesCapabilities(Map<String,Object> capabilities) {
         String capabilityBrowser = (String)capabilities.get(CapabilityType.BROWSER_NAME);
         String capabilityBrowserVersion = (String)capabilities.get(CapabilityType.VERSION);
-        String capabilityOs = (String)capabilities.get(CapabilityType.PLATFORM);
+        Object platform = capabilities.get(CapabilityType.PLATFORM);
+        String capabilityOs;
+        if (platform instanceof Platform) {
+            capabilityOs = ((Platform) platform).getPartOfOsName()[0];
+        } else {
+            capabilityOs = (String)platform;
+        }
         if(!AutomationUtils.lowerCaseMatch(browser, capabilityBrowser)) {
             return false;
         }
