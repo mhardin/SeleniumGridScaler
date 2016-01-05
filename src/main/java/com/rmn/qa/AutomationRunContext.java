@@ -38,7 +38,7 @@ public final class AutomationRunContext {
 
     private static final Logger log = LoggerFactory.getLogger(AutomationRunContext.class);
 
-    private static final int CLEANUP_LIFE_LENGTH_IN_SECONDS = 90; // 1.5 minutes
+    private static final int CLEANUP_LIFE_LENGTH_IN_SECONDS = 420; // 7 minutes
     private Map<String, AutomationRunRequest> requests = Maps.newConcurrentMap();
     private Map<String, AutomationDynamicNode> nodes = Maps.newConcurrentMap();
 
