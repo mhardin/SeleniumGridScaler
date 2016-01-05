@@ -101,7 +101,14 @@ public final class AutomationRunRequest {
         if(capabilities.containsKey(CapabilityType.VERSION)) {
             capabilityBrowserVersion = (String)capabilities.get(CapabilityType.VERSION);
         }
-        String capabilityOs = (String)capabilities.get(CapabilityType.PLATFORM);
+        Object platform = capabilities.get(CapabilityType.PLATFORM);
+        String capabilityOs;
+        if (platform instanceof Platform) {
+            capabilityOs = ((Platform) platform).getPartOfOsName()[0];
+        } else {
+            capabilityOs = (String)platform;
+        }
+
         return new AutomationRunRequest(null,null,capabilityBrowser,capabilityBrowserVersion,capabilityOs);
     }
 
