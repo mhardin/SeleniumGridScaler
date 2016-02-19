@@ -18,6 +18,7 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
 import com.google.common.annotations.VisibleForTesting;
+import com.rmn.qa.AutomationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +122,7 @@ public class AwsTagReporter extends Thread {
             }
         }
         // Including a hard coded tag here so we can track which resources originate from this plugin
-        Tag nodeTag = new Tag("LaunchSource","SeleniumGridScalerPlugin");
+        Tag nodeTag = new Tag("LaunchSource","SeleniumGridScalerPlugin_"+ AutomationUtils.getHubInstanceId());
         log.info("Adding hard-coded tag: " + nodeTag);
         tags.add(nodeTag);
         CreateTagsRequest ctr = new CreateTagsRequest(Arrays.asList(instanceId),tags);

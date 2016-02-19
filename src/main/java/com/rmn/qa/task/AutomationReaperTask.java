@@ -36,7 +36,7 @@ public class AutomationReaperTask extends AbstractAutomationCleanupTask {
         log.info("Running " + AutomationReaperTask.NAME);
         DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
         Filter filter = new Filter("tag:LaunchSource");
-        filter.withValues("SeleniumGridScalerPlugin");
+        filter.withValues("SeleniumGridScalerPlugin_"+ AutomationUtils.getHubInstanceId());
         describeInstancesRequest.withFilters(filter);
         List<Reservation> reservations = ec2.describeInstances(describeInstancesRequest);
         for(Reservation reservation : reservations) {

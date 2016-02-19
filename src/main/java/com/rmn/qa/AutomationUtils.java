@@ -12,6 +12,14 @@
 
 package com.rmn.qa;
 
+import com.rmn.qa.aws.AwsTagReporter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -28,6 +36,11 @@ public final class AutomationUtils {
      * @param unitType Measurement type (e.g. Calendar.SECONDS)
      * @return Modified date
      */
+
+    private static final Logger log = LoggerFactory.getLogger(AwsTagReporter.class);
+    static int AWS_METADATA_TIMEOUT = 3 * 1000;
+    private static String AWS_INSTANCE_METADATA_URI = "http://169.254.169.254/latest/meta-data";
+
     public static Date modifyDate(Date dateToModify,int unitsToModify,int unitType) {
         Calendar c = Calendar.getInstance();
         c.setTime(dateToModify);
@@ -57,6 +70,29 @@ public final class AutomationUtils {
     public static boolean lowerCaseMatch(String string1, String string2) {
         string2 = string2.toLowerCase().replace(" ","");
         return string2.equals(string1.toLowerCase().replace(" ", ""));
+    }
+
+    /**
+     * Returns AWS instanceId of the hub, returns null if times out
+     * @return
+     */
+    public static String getHubInstanceId(){
+        String line="";
+        try {
+            URL url = new URL(AWS_INSTANCE_METADATA_URI+"/instance-id");
+            URLConnection urlConnection = url.openConnection();
+            urlConnection.setConnectTimeout(AWS_METADATA_TIMEOUT);
+            urlConnection.setReadTimeout(AWS_METADATA_TIMEOUT);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
+            for (;(line = reader.readLine()) != null;) {
+                log.info("Hub's InstanceId:" + line);
+                return line;
+            }
+
+        }catch (Exception e){
+            log.info("Exception while retrieving the instanceId of the hub: "+ e.toString());
+        }
+        return null;
     }
 
 }
