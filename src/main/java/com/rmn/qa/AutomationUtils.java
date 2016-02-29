@@ -77,22 +77,27 @@ public final class AutomationUtils {
      * @return
      */
     public static String getHubInstanceId(){
-        String line="";
+        String line = "NoInstanceId";
         try {
             URL url = new URL(AWS_INSTANCE_METADATA_URI+"/instance-id");
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(AWS_METADATA_TIMEOUT);
             urlConnection.setReadTimeout(AWS_METADATA_TIMEOUT);
             BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
-            for (;(line = reader.readLine()) != null;) {
+
+            while ((line = reader.readLine()) != null) {
+
                 log.info("Hub's InstanceId:" + line);
                 return line;
             }
 
-        }catch (Exception e){
-            log.info("Exception while retrieving the instanceId of the hub: "+ e.toString());
+        } catch (Exception e) {
+
+            log.warn("Cannot create unique tag name using the Hub's instanceId, if you use multiple Hub,this may result in grid nodes being terminated by other hub(s)");
+            log.info("Exception while retrieving the instanceId of the hub via metadata uri:" + e);
+
         }
-        return null;
+        return line;
     }
 
 }
