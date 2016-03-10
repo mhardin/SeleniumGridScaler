@@ -73,28 +73,48 @@ public final class AutomationUtils {
     }
 
     /**
-     * Returns AWS instanceId of the hub, returns null if times out
+     * Returns AWS instanceId of the hub, returns "NoInstanceId" if times out
      * @return
      */
-    public static String getHubInstanceId(){
-        String line = "NoInstanceId";
+    public static String getHubInstanceId()
+    {
+        String hubInstanceId="";
+
         try {
-            URL url = new URL(AWS_INSTANCE_METADATA_URI+"/instance-id");
+            URL url = new URL(AWS_INSTANCE_METADATA_URI + "/instance-id");
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(AWS_METADATA_TIMEOUT);
             urlConnection.setReadTimeout(AWS_METADATA_TIMEOUT);
             BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
+            hubInstanceId=readMetaURIResponse(reader);
+
+        } catch (Exception e) {
+            log.warn("Cannot create unique tag name using the Hub's instanceId, if you use multiple Hub,this may result in grid nodes being terminated by other hub(s)");
+            log.info("Exception while retrieving the instanceId of the hub via metadata uri:" + e);
+
+        }
+
+        return hubInstanceId;
+    }
+
+    /**
+     * Returns the value in the BufferReader, "NoResponse" if response is empty
+     * @param reader Buffer reader of AWS META DATA URI
+     * @return
+     */
+    private static String readMetaURIResponse (BufferedReader reader)
+    {
+        String line = "NoResponse";
+        try {
 
             while ((line = reader.readLine()) != null) {
 
-                log.info("Hub's InstanceId:" + line);
                 return line;
             }
 
         } catch (Exception e) {
 
-            log.warn("Cannot create unique tag name using the Hub's instanceId, if you use multiple Hub,this may result in grid nodes being terminated by other hub(s)");
-            log.info("Exception while retrieving the instanceId of the hub via metadata uri:" + e);
+            log.info("Exception while reading the response of AWS META DATA URI: " + e);
 
         }
         return line;
