@@ -73,12 +73,12 @@ public final class AutomationUtils {
     }
 
     /**
-     * Returns AWS instanceId of the hub, returns "NoInstanceId" if times out
+     * Returns AWS instanceId of the hub, returns "NoResponse" if times out
      * @return
      */
     public static String getHubInstanceId()
     {
-        String hubInstanceId="";
+        String hubInstanceId="NoResponse";
 
         try {
             URL url = new URL(AWS_INSTANCE_METADATA_URI + "/instance-id");
@@ -102,7 +102,7 @@ public final class AutomationUtils {
      * @param reader Buffer reader of AWS META DATA URI
      * @return
      */
-    private static String readMetaURIResponse (BufferedReader reader)
+    public static String readMetaURIResponse (BufferedReader reader)
     {
         String line = "NoResponse";
         try {
