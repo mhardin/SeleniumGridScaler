@@ -18,9 +18,14 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Tag;
 import com.google.common.annotations.VisibleForTesting;
+import com.rmn.qa.AutomationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,7 +37,6 @@ public class AwsTagReporter extends Thread {
 
     private static final Logger log = LoggerFactory.getLogger(AwsTagReporter.class);
     static int TIMEOUT_IN_SECONDS = 10 * 1000;
-
     private AmazonEC2Client ec2Client;
     private Collection<Instance> instances;
     private Properties awsProperties;
@@ -120,8 +124,10 @@ public class AwsTagReporter extends Thread {
                 tags.add(tagToAdd);
             }
         }
+
         // Including a hard coded tag here so we can track which resources originate from this plugin
-        Tag nodeTag = new Tag("LaunchSource","SeleniumGridScalerPlugin");
+        Tag nodeTag = new Tag("LaunchSource","SeleniumGridScalerExpwebStubbed"+AutomationUtils.getHubInstanceId());
+
         log.info("Adding hard-coded tag: " + nodeTag);
         tags.add(nodeTag);
         CreateTagsRequest ctr = new CreateTagsRequest(Arrays.asList(instanceId),tags);

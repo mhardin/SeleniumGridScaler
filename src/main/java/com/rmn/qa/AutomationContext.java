@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 public class AutomationContext {
 
     private static final Logger log = LoggerFactory.getLogger(AutomationContext.class);
-    private static final int DEFAULT_MAX_THREAD_COUNT = 400;
+    private static final int DEFAULT_MAX_THREAD_COUNT = 450;
     private static AutomationRunContext context = new AutomationRunContext();
 
     // Singleton to maintain a context object
