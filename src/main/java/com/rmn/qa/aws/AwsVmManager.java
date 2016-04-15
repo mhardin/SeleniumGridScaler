@@ -326,9 +326,9 @@ public class AwsVmManager implements VmManager {
      */
     private String getAmiIdForOs(final String os, final String browser) {
         String requestedProperty;
-        if (os.equals("windows") || browser.equals(BrowserType.IE)) {
+        if (os.equalsIgnoreCase("windows") || browser.equals(BrowserType.IE)) {
             requestedProperty = region + "_windows_node_ami";
-        } else if (os.equals("linux")) {
+        } else if (os.equalsIgnoreCase("linux")) {
             requestedProperty = region + "_linux_node_ami";
         } else {
             throw new RuntimeException("Unsupported OS: " + os);

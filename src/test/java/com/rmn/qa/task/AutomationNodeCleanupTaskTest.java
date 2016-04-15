@@ -12,8 +12,13 @@
 
 package com.rmn.qa.task;
 
-import com.rmn.qa.*;
-import junit.framework.Assert;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.After;
 import org.junit.Test;
 import org.openqa.grid.common.SeleniumProtocol;
@@ -21,7 +26,18 @@ import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.TestSlot;
 import org.openqa.selenium.remote.CapabilityType;
 
-import java.util.*;
+import com.rmn.qa.AutomationCapabilityMatcher;
+import com.rmn.qa.AutomationConstants;
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.AutomationRequestMatcher;
+import com.rmn.qa.AutomationRunRequest;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.MockRemoteProxy;
+import com.rmn.qa.MockRequestMatcher;
+import com.rmn.qa.MockVmManager;
+
+import junit.framework.Assert;
 
 public class AutomationNodeCleanupTaskTest {
 
@@ -303,7 +319,7 @@ public class AutomationNodeCleanupTaskTest {
         Assert.assertEquals("Status should change to expired first", AutomationDynamicNode.STATUS.EXPIRED, node.getStatus());
         task.run();
         Assert.assertEquals("Node should be terminated as it was empty", AutomationDynamicNode.STATUS.TERMINATED, node.getStatus());
-        Assert.assertNotNull("Node should be tracked",AutomationContext.getContext().getNode(node.getInstanceId()));
+        Assert.assertNull("Node should no longer be tracked",AutomationContext.getContext().getNode(node.getInstanceId()));
         node.setEndDate(AutomationUtils.modifyDate(new Date(), -45, Calendar.MINUTE));
         task.run();
         Assert.assertNull("Node should not be tracked after its been terminated for 30 minutes", AutomationContext.getContext().getNode(node.getInstanceId()));

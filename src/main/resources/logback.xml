@@ -55,7 +55,15 @@
         <level value="INFO"/>
         <appender-ref ref="FILE" />
     </logger>
-    <logger name="com.rmn.qa.task.AutomationNodeRegistryTask">
+    <logger name="com.rmn.qa.task.AutomationOrphanedNodeRegistryTask">
+        <level value="INFO"/>
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="com.rmn.qa.task.AutomationPendingNodeRegistryTask">
+        <level value="INFO"/>
+        <appender-ref ref="FILE" />
+    </logger>
+    <logger name="com.rmn.qa.task.AutomationScaleNodeTask">
         <level value="INFO"/>
         <appender-ref ref="FILE" />
     </logger>

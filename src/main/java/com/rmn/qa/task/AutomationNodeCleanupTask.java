@@ -11,16 +11,36 @@
  */
 package com.rmn.qa.task;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.rmn.qa.*;
-import com.rmn.qa.aws.VmManager;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.RemoteProxy;
 import org.openqa.grid.internal.TestSlot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import com.google.common.annotations.VisibleForTesting;
+import com.rmn.qa.AutomationConstants;
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.AutomationRunContext;
+import com.rmn.qa.AutomationRunRequest;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.RegistryRetriever;
+import com.rmn.qa.RequestMatcher;
+import com.rmn.qa.aws.VmManager;
 
 /**
  * Cleanup task which moves {@link com.rmn.qa.AutomationDynamicNode nodes} into the correct status depending on their lifecycle.  The purpose of this
@@ -42,7 +62,7 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
      * @param ec2 EC2 implementation
      * @param requestMatcher Request matcher implementation
      */
-    public AutomationNodeCleanupTask(RegistryRetriever registryRetriever,VmManager ec2,RequestMatcher requestMatcher) {
+    public AutomationNodeCleanupTask(RegistryRetriever registryRetriever, VmManager ec2, RequestMatcher requestMatcher) {
         super(registryRetriever);
         this.ec2 = ec2;
         this.requestMatcher = requestMatcher;
@@ -60,6 +80,11 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
     @VisibleForTesting
     protected ProxySet getProxySet() {
         return registryRetriever.retrieveRegistry().getAllProxies();
+    }
+
+    @VisibleForTesting
+    protected void removeProxy(RemoteProxy proxy) {
+        registryRetriever.retrieveRegistry().removeIfPresent(proxy);
     }
 
     // We're going to continuously iterate over registered nodes with the hub.  If they're expired, we're going to mark them for removal.
@@ -90,21 +115,41 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
                         log.info(String.format("Node [%s] was still running after initial allotted time.  Resetting status and increasing end date to %s.",instanceId, node.getEndDate()));
                         node.updateStatus(AutomationDynamicNode.STATUS.RUNNING);
                     } else if(isNodeCurrentlyEmpty(instanceId)) {
-                        log.info(String.format("Terminating node %s and updating status to 'TERMINATED'",instanceId));
-                        // Delete node
+                        log.info(String.format("Terminating node %s and updating status to 'TERMINATED'", instanceId));
+                        // Terminate the instance inside AWS
                         ec2.terminateInstance(instanceId);
-                        node.updateStatus(AutomationDynamicNode.STATUS.TERMINATED);
-                    }
-                } else if(nodeStatus == AutomationDynamicNode.STATUS.TERMINATED) {
-                    // If the current time is more than 30 minutes after the node end date, we should remove it from being tracked
-                    if(System.currentTimeMillis()  > node.getEndDate().getTime() + (30 * 60 * 1000) ) {
-                        // Remove it, and this will remove from tracking since we're referencing the collection
-                        log.info(String.format("Removing node [%s] from internal tracking set",instanceId));
+                        // Also remove the node from Selenium's tracking set as there have been cases where the node sticks around
+                        // and slows down the console as the node can on longer be pinged
+                        removeFromProxy(getProxySet(), instanceId);
                         iterator.remove();
+                        log.info(String.format("Removed node [%s] from internal tracking set", instanceId));
+                        node.updateStatus(AutomationDynamicNode.STATUS.TERMINATED);
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Removes the specified instance from the ProxySet, if it exists
+     * @param proxySet
+     * @param instanceId
+     */
+    private void removeFromProxy(ProxySet proxySet, String instanceId) {
+        Iterator<RemoteProxy> iterator = proxySet.iterator();
+        while(iterator.hasNext()) {
+            RemoteProxy proxy = iterator.next();
+            Map<String,Object> config = proxy.getConfig();
+            if(config.containsKey(AutomationConstants.INSTANCE_ID)) {
+                String nodeInstanceId = (String)config.get(AutomationConstants.INSTANCE_ID);
+                if (instanceId.equals(nodeInstanceId)) {
+                    log.info("Node found to remove from proxy set: " + instanceId);
+                    removeProxy(proxy);
+                    return;
+                }
+            }
+        }
+        log.warn("Node not found to remove from proxy set: " + instanceId);
     }
 
     /**
@@ -188,7 +233,8 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
      */
     public boolean isNodeCurrentlyEmpty(String instanceToFind) {
         ProxySet proxySet = getProxySet();
-        for(RemoteProxy proxy : proxySet){
+        boolean nodeEmpty = true;
+        for (RemoteProxy proxy : proxySet) {
             List<TestSlot> slots = proxy.getTestSlots();
             Object instanceId = proxy.getConfig().get(AutomationConstants.INSTANCE_ID);
             // If the instance id's do not match, this means this is not the node we are looking for
@@ -200,14 +246,64 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
             for (TestSlot testSlot : slots) {
                 // If we find a running session, this means the node is occupied, so we should return false
                 if(testSlot.getSession() != null) {
-                    return false;
+                    nodeEmpty = false;
+                    break;
                 }
             }
-            // If we reached this point, this means we found our target node AND it had no sessions, meaning the node was empty
-            return true;
+            if (!nodeEmpty) {
+                return checkNodeForHungSessions(instanceToFind);
+            } else {
+                // If we reached this point, this means we found our target node AND it had no sessions, meaning the node was empty
+                return true;
+            }
         }
         // If we didn't find a matching node, we're going to say the nodes is empty so we can terminate it
         log.warn("No matching node was found in the proxy set.  Instance id: " + instanceToFind);
         return true;
+    }
+
+    /**
+     * Checks the instance in question to see if any browser slots are 'hung' that would otherwise block terminating the instance
+     * @param instanceToFind
+     * @return
+     */
+    private boolean checkNodeForHungSessions(String instanceToFind) {
+        AutomationDynamicNode node = AutomationContext.getContext().getNode(instanceToFind);
+        // If the IP is null, there isn't anything we can do with the node and we have to treat it as not empty
+        if (node.getIpAddress() == null) {
+            return false;
+        } else {
+            String url = String.format("http://%s:5555/wd/hub/sessions", node.getIpAddress());
+            log.info("Orphaned nodes URL: " + url);
+            try {
+                log.info("Attempting to retrieve in progress sessions before termination for node: " + node.getInstanceId());
+                URL obj = new URL(url);
+                HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                con.setConnectTimeout(10000);
+                con.setReadTimeout(10000);
+
+                int responseCode = con.getResponseCode();
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                String inputLine;
+                StringBuffer responseBuffer = new StringBuffer();
+
+                while ((inputLine = in.readLine()) != null) {
+                    responseBuffer.append(inputLine);
+                }
+                in.close();
+                String response = responseBuffer.toString();
+                if  (response != null && !response.contains("capabilities")) {
+                    log.info("Node had hung sessions but will be terminated anyways.");
+                    return true;
+                }
+            } catch(SocketTimeoutException ste) {
+                log.warn("Timeout attempting to retrieve in progress sessions for node: " + node.getInstanceId(), ste);
+            } catch (Exception e) {
+                log.warn("Error retrieving sessions from node", e);
+                // We don't need an explicit return here as we can just reuse the one below
+            }
+            return false;
+        }
     }
 }

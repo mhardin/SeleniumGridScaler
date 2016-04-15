@@ -1,5 +1,12 @@
 package com.rmn.qa.task;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.Instance;
@@ -9,12 +16,6 @@ import com.rmn.qa.AutomationContext;
 import com.rmn.qa.AutomationUtils;
 import com.rmn.qa.RegistryRetriever;
 import com.rmn.qa.aws.VmManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
 
 public class AutomationReaperTask extends AbstractAutomationCleanupTask {
 
@@ -42,10 +43,10 @@ public class AutomationReaperTask extends AbstractAutomationCleanupTask {
         for(Reservation reservation : reservations) {
             for(Instance instance : reservation.getInstances()) {
                 // Look for orphaned nodes
-                Date threshold = AutomationUtils.modifyDate(new Date(),-30, Calendar.MINUTE);
+                Date threshold = AutomationUtils.modifyDate(new Date(),-90, Calendar.MINUTE);
                 String instanceId = instance.getInstanceId();
                 // If we found a node old enough AND we're not internally tracking it, this means this is an orphaned node and we should terminate it
-                if(threshold.after(instance.getLaunchTime()) && !AutomationContext.getContext().nodeExists(instanceId)) {
+                if(threshold.after(instance.getLaunchTime()) && !AutomationContext.getContext().nodeExists(instanceId) && instance.getState().getCode() != 48) { // 48 == terminated
                     log.info("Terminating orphaned node: " + instanceId);
                     ec2.terminateInstance(instanceId);
                 }

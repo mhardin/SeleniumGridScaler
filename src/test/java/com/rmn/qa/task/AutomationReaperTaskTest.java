@@ -1,17 +1,20 @@
 package com.rmn.qa.task;
 
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+
+import org.junit.Test;
+
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceState;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.rmn.qa.AutomationContext;
 import com.rmn.qa.AutomationDynamicNode;
 import com.rmn.qa.AutomationUtils;
 import com.rmn.qa.MockVmManager;
-import junit.framework.Assert;
-import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
+import junit.framework.Assert;
 
 public class AutomationReaperTaskTest {
 
@@ -20,6 +23,7 @@ public class AutomationReaperTaskTest {
         MockVmManager ec2 = new MockVmManager();
         Reservation reservation = new Reservation();
         Instance instance = new Instance();
+        instance.setState(new InstanceState().withCode(10));
         String instanceId = "foo";
         instance.setInstanceId(instanceId);
         instance.setLaunchTime(AutomationUtils.modifyDate(new Date(),-5,Calendar.HOUR));
@@ -28,6 +32,21 @@ public class AutomationReaperTaskTest {
         AutomationReaperTask task = new AutomationReaperTask(null,ec2);
         task.run();
         Assert.assertTrue("Node should be terminated as it was empty", ec2.isTerminated());
+    }
+    @Test
+    public void testNoShutdownAlreadyTerminated() {
+        MockVmManager ec2 = new MockVmManager();
+        Reservation reservation = new Reservation();
+        Instance instance = new Instance();
+        instance.setState(new InstanceState().withCode(48));
+        String instanceId = "foo";
+        instance.setInstanceId(instanceId);
+        instance.setLaunchTime(AutomationUtils.modifyDate(new Date(),-5,Calendar.HOUR));
+        reservation.setInstances(Arrays.asList(instance));
+        ec2.setReservations(Arrays.asList(reservation));
+        AutomationReaperTask task = new AutomationReaperTask(null,ec2);
+        task.run();
+        Assert.assertFalse("Node should be terminated as it was empty", ec2.isTerminated());
     }
 
     @Test

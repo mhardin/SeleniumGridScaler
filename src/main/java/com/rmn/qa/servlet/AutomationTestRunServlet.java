@@ -11,23 +11,18 @@
  */
 package com.rmn.qa.servlet;
 
-import com.amazonaws.services.ec2.model.Instance;
-import com.rmn.qa.AutomationConstants;
-import com.rmn.qa.AutomationContext;
-import com.rmn.qa.AutomationDynamicNode;
-import com.rmn.qa.AutomationRequestMatcher;
-import com.rmn.qa.AutomationRunRequest;
-import com.rmn.qa.AutomationUtils;
-import com.rmn.qa.RequestMatcher;
-import com.rmn.qa.RegistryRetriever;
-import com.rmn.qa.NodesCouldNotBeStartedException;
-import com.rmn.qa.aws.AwsVmManager;
-import com.rmn.qa.aws.VmManager;
-import com.rmn.qa.task.AutomationHubCleanupTask;
-import com.rmn.qa.task.AutomationNodeCleanupTask;
-import com.rmn.qa.task.AutomationNodeRegistryTask;
-import com.rmn.qa.task.AutomationReaperTask;
-import com.rmn.qa.task.AutomationRunCleanupTask;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.Registry;
 import org.openqa.grid.selenium.GridLauncher;
@@ -36,16 +31,25 @@ import org.openqa.selenium.remote.BrowserType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import com.amazonaws.services.ec2.model.Instance;
+import com.rmn.qa.AutomationConstants;
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.AutomationRequestMatcher;
+import com.rmn.qa.AutomationRunRequest;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.NodesCouldNotBeStartedException;
+import com.rmn.qa.RegistryRetriever;
+import com.rmn.qa.RequestMatcher;
+import com.rmn.qa.aws.AwsVmManager;
+import com.rmn.qa.aws.VmManager;
+import com.rmn.qa.task.AutomationHubCleanupTask;
+import com.rmn.qa.task.AutomationNodeCleanupTask;
+import com.rmn.qa.task.AutomationOrphanedNodeRegistryTask;
+import com.rmn.qa.task.AutomationPendingNodeRegistryTask;
+import com.rmn.qa.task.AutomationReaperTask;
+import com.rmn.qa.task.AutomationRunCleanupTask;
+import com.rmn.qa.task.AutomationScaleNodeTask;
 
 /**
  * Servlet used to register new {@link com.rmn.qa.AutomationRunRequest runs} as well as delete existing {@link com.rmn.qa.AutomationRunRequest runs}.
@@ -56,14 +60,6 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
 
     private static final long serialVersionUID = 8484071790930378855L;
     private static final Logger log = LoggerFactory.getLogger(AutomationTestRunServlet.class);
-    // Start times
-    private static final long START_DELAY_IN_SECONDS = 60L; // 60 start delay for run and node cleanup tasks
-    private static final long EXPIRED_POLLING_TIME_IN_SECONDS = 15L; // Look for nodes to clean up every 15 seconds
-    private static final long HUB_TERMINATE_START_DELAY_IN_MINUTES= 5L; // Delay 5 minutes to start trying to shutdown the hub
-    // Polling times
-    private static final long HUB_TERMINATION_POLLING_TIME_IN_MINUTES = 1L; // Look every minute to shutdown the hub
-    private static final long NODE_REGISTRATION_POLLING_TIME_IN_MINUTES = 15L; // Look every 15 minutes for new unregistered nodes
-    private static final long TEST_RUN_CLEANUP_POLLING_TIME_IN_SECONDS = 60L; // Look for runs to clean up every 60 seconds
 
     // We override these for unit testing
     private VmManager ec2;
@@ -83,7 +79,7 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
      * @param ec2 EC2 implementation that you wish to use
      * @param requestMatcher RequestMatcher implementation you wish you use
      */
-    public AutomationTestRunServlet(Registry registry, boolean initThreads, VmManager ec2,RequestMatcher requestMatcher) {
+    public AutomationTestRunServlet(Registry registry, boolean initThreads, VmManager ec2, RequestMatcher requestMatcher) {
         super(registry);
         setManageEc2(ec2);
         setRequestMatcher(requestMatcher);
@@ -97,18 +93,24 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
         // Wrapper to lazily fetch the Registry object as this is not populated at instantiation time
         // Spin up a scheduled thread to poll for unused test runs and clean up them
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationRunCleanupTask(this),
-                AutomationTestRunServlet.START_DELAY_IN_SECONDS, AutomationTestRunServlet.TEST_RUN_CLEANUP_POLLING_TIME_IN_SECONDS, TimeUnit.SECONDS);
+                60L, 60L, TimeUnit.SECONDS);
         // Spin up a scheduled thread to clean up and terminate nodes that were spun up
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationNodeCleanupTask(this,ec2,requestMatcher),
-                AutomationTestRunServlet.START_DELAY_IN_SECONDS,AutomationTestRunServlet.EXPIRED_POLLING_TIME_IN_SECONDS, TimeUnit.SECONDS);
+                60L, 15L, TimeUnit.SECONDS);
         // Spin up a scheduled thread to register unregistered dynamic nodes (will happen if hub gets shut down)
-        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationNodeRegistryTask(this),
-                AutomationTestRunServlet.HUB_TERMINATE_START_DELAY_IN_MINUTES,AutomationTestRunServlet.NODE_REGISTRATION_POLLING_TIME_IN_MINUTES, TimeUnit.MINUTES);
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationOrphanedNodeRegistryTask(this),
+                1L, 5L, TimeUnit.MINUTES);
+        // Spin up a scheduled thread to track nodes that are pending startup
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationPendingNodeRegistryTask(this),
+                60L, 15L, TimeUnit.SECONDS);
+        // Spin up a scheduled thread to analyzed queued requests to scale up capacity
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationScaleNodeTask(this, ec2),
+                60L, 15L, TimeUnit.SECONDS);
         String instanceId = System.getProperty(AutomationConstants.INSTANCE_ID);
         if(instanceId != null && instanceId.length() > 0) {
             log.info("Instance ID detected.  Hub termination thread will be started.");
             Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationHubCleanupTask(this,ec2,instanceId),
-                 AutomationTestRunServlet.HUB_TERMINATE_START_DELAY_IN_MINUTES,AutomationTestRunServlet.HUB_TERMINATION_POLLING_TIME_IN_MINUTES, TimeUnit.MINUTES);
+                    5L, 1L, TimeUnit.MINUTES);
         } else {
             log.info("Hub is not a dynamic hub -- termination logic will not be started");
         }
@@ -117,7 +119,7 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
         if(!"false".equalsIgnoreCase(runReaperThread)) {
             // Spin up a scheduled thread to terminate orphaned instances
             Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(new AutomationReaperTask(this,ec2),
-                    AutomationTestRunServlet.HUB_TERMINATE_START_DELAY_IN_MINUTES,AutomationTestRunServlet.NODE_REGISTRATION_POLLING_TIME_IN_MINUTES, TimeUnit.MINUTES);
+                    1L, 15L, TimeUnit.MINUTES);
         } else {
             log.info("Reaper thread not running due to config flag.");
         }
@@ -222,7 +224,7 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
             // Start up AMIs as that will be required
             log.warn(String.format("Insufficient nodes to fulfill request. New AMIs will be queued up. Requested [%s] - Available [%s] - Request UUID [%s]", threadCountRequested, currentlyAvailableNodes, uuid));
             try{
-                startNodes(uuid,amiThreadsToStart,browserRequested,osRequested);
+                AutomationTestRunServlet.startNodes(ec2, uuid, amiThreadsToStart, browserRequested, osRequested);
             } catch(NodesCouldNotBeStartedException e) {
                 // Make sure and de-register the run if the AMI startup was not successful
                 AutomationContext.getContext().deleteRun(uuid);
@@ -246,7 +248,7 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
      * @param threadCountRequested
      * @return
      */
-    private void startNodes(String uuid,int threadCountRequested, String browser, String os) throws NodesCouldNotBeStartedException {
+    public static void startNodes(VmManager ec2, String uuid,int threadCountRequested, String browser, String os) throws NodesCouldNotBeStartedException {
         log.info(String.format("%d threads requested",threadCountRequested));
         try{
             String localhostname;
@@ -279,16 +281,16 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
                 machinesNeeded++;
             }
             log.info(String.format("%s nodes will be started for run [%s]",machinesNeeded,uuid));
-            List<Instance> instances = ec2.launchNodes(uuid, os, browser, localhostname,
-                                                       machinesNeeded, numThreadsPerMachine);
+            List<Instance> instances = ec2.launchNodes(uuid, os, browser, localhostname, machinesNeeded, numThreadsPerMachine);
             log.info(String.format("%d instances started", instances.size()));
             // Reuse the start date since all the nodes were created within the same request
             Date startDate = new Date();
             for(Instance instance : instances) {
+                // Add the node as pending startup to our context so we can track it in AutomationPendingNodeRegistryTask
+                AutomationContext.getContext().addPendingNode(instance.getInstanceId());
                 log.info("Node instance id: " + instance.getInstanceId());
                 AutomationContext.getContext().addNode(
-                    new AutomationDynamicNode(uuid, instance.getInstanceId(), browser, os, startDate,
-                                              numThreadsPerMachine));
+                        new AutomationDynamicNode(uuid, instance.getInstanceId(), browser, os, instance.getPrivateIpAddress(), startDate, numThreadsPerMachine));
             }
         } catch(Exception e) {
             log.error("Error trying to start nodes: " + e);
@@ -301,7 +303,7 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
      * @param browser
      * @return
      */
-    private boolean browserSupportedByAmis(String browser) {
+    public static boolean browserSupportedByAmis(String browser) {
         return AutomationUtils.lowerCaseMatch(BrowserType.CHROME,browser) || AutomationUtils.lowerCaseMatch(BrowserType.FIREFOX,browser) || AutomationUtils.lowerCaseMatch("internetexplorer",browser);
     }
 

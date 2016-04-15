@@ -11,6 +11,7 @@
  */
 package com.rmn.qa;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -22,7 +23,6 @@ import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.RemoteProxy;
 import org.openqa.grid.internal.TestSession;
 import org.openqa.grid.internal.TestSlot;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +41,7 @@ public final class AutomationRunContext {
     private static final int CLEANUP_LIFE_LENGTH_IN_SECONDS = 420; // 7 minutes
     private Map<String, AutomationRunRequest> requests = Maps.newConcurrentMap();
     private Map<String, AutomationDynamicNode> nodes = Maps.newConcurrentMap();
+    private Set<String> pendingStartupNodes = Collections.newSetFromMap(Maps.newConcurrentMap()); // Nodes that are currently starting up and have not registered yet
 
     private int totalNodeCount;
 
@@ -285,7 +286,7 @@ public final class AutomationRunContext {
         } else {
             return System.currentTimeMillis()
                     > runRequest.getCreatedDate().getTime() + (AutomationRunContext.CLEANUP_LIFE_LENGTH_IN_SECONDS
-                        * 1000);
+                    * 1000);
         }
     }
 
@@ -305,6 +306,47 @@ public final class AutomationRunContext {
      */
     public void setTotalNodeCount(final int totalNodeCount) {
         this.totalNodeCount = totalNodeCount;
+    }
+
+    /**
+     * Adds the specified node to the pending node collection
+     * @param amiId
+     */
+    public void addPendingNode(String amiId) {
+        pendingStartupNodes.add(amiId);
+    }
+
+    /**
+     * Removes the specified node from the pending node collection
+     * @param amiId
+     */
+    public void removePendingNode(String amiId) {
+        pendingStartupNodes.remove(amiId);
+    }
+
+    /**
+     * Checks if the specified node exists in the pending node collection
+     * @param amiId
+     * @return True if the node exists, false otherwise
+     */
+    public boolean pendingNodeExists(String amiId) {
+        return pendingStartupNodes.contains(amiId);
+    }
+
+    /**
+     * Returns the pending nodes collection
+     * @return
+     */
+    public Set<String> getPendingStartupNodes() {
+        return pendingStartupNodes;
+    }
+
+    /**
+     * Returns true if there are no nodes that are pending startup
+     * @return
+     */
+    public boolean noPendingNodesExist() {
+        return pendingStartupNodes.isEmpty();
     }
 
     /**

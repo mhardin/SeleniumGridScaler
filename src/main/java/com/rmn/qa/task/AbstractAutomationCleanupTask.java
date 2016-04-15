@@ -11,9 +11,10 @@
  */
 package com.rmn.qa.task;
 
-import com.rmn.qa.RegistryRetriever;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.rmn.qa.RegistryRetriever;
 
 /**
  * Base task class that has exception/running handling for other tasks to extend with their

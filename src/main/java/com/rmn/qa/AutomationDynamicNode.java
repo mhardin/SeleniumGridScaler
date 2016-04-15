@@ -33,7 +33,7 @@ public final class AutomationDynamicNode implements Comparable<AutomationDynamic
     private static final int NODE_INTERVAL_LIFETIME = 55; // 55 minutes
 
     // TODO: Refactor this to be AutomationRunRequest
-    private final String uuid,instanceId,browser,os;
+    private final String uuid, instanceId, browser, os, ipAddress;
     private Date startDate,endDate;
     private final int nodeCapacity;
     private STATUS status;
@@ -47,11 +47,16 @@ public final class AutomationDynamicNode implements Comparable<AutomationDynamic
      * @param startDate Date that this node was started
      * @param nodeCapacity Maximum test capacity that this node can run
      */
-    public AutomationDynamicNode(String uuid,String instanceId,String browser, String os,Date startDate,int nodeCapacity){
+    public AutomationDynamicNode(String uuid,String instanceId,String browser, String os, Date startDate, int nodeCapacity){
+        this(uuid, instanceId, browser, os, null, startDate, nodeCapacity);
+    }
+
+    public AutomationDynamicNode(String uuid,String instanceId,String browser, String os, String ipAddress, Date startDate, int nodeCapacity){
         this.uuid = uuid;
         this.instanceId = instanceId;
         this.browser = browser;
         this.os = os;
+        this.ipAddress = ipAddress;
         this.startDate = startDate;
         this.endDate = computeEndDate(startDate);
         this.nodeCapacity = nodeCapacity;
@@ -111,6 +116,14 @@ public final class AutomationDynamicNode implements Comparable<AutomationDynamic
      */
     public String getOs() {
         return os;
+    }
+
+    /**
+     * Returns the private IP address of this node
+     * @return
+     */
+    public String getIpAddress() {
+        return ipAddress;
     }
 
     /**
@@ -199,6 +212,11 @@ public final class AutomationDynamicNode implements Comparable<AutomationDynamic
 
     @Override
     public String toString() {
-        return String.format("Node - UUID: %s Instance ID: %s Created Date: %s",uuid,instanceId, startDate);
+        return "AutomationDynamicNode{" +
+                "uuid='" + uuid + '\'' +
+                ", instanceId='" + instanceId + '\'' +
+                ", startDate=" + startDate +
+                ", ipAddress='" + ipAddress + '\'' +
+                '}';
     }
 }

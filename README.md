@@ -15,7 +15,7 @@ New nodes will be started as needed depending on the browser requested:
 AWS bills by rounding up to the next hour, so if you leave a machine on for 5 minutes, you get billed for the full hour (60 minutes).  Based on this logic, SeleniumGridScaler's automatic termination logic will terminate nodes at the end of the current billing cycle, taking into account current test load.  So if there is enough test load, say 12 tests running and only 12 threads are online (2 chrome instances each capable of running 6 for a total of 12), all of the nodes will stay on.  If the current time crosses into the next billing cycle (e.g. they're on for 1 hour and 5 minutes), SeleniumGridScaler will not attempt to terminate them until the end of that next billing cycle (will attempt to terminate at 1 hour and 55 minutes instead of prematurely terminating paid for resources).
 
 ## Requirements
-A Java 7 or later runtime is required in order to run this application
+A Java 8 or later runtime is required in order to run this application
 
 ## Installation/Startup
 Download the automation-grid jar file. To start up the hub process, start the jar with the java jar command like so.  Note, you must register the Scaler servlet (AutomationTestRunServlet) with GridLauncher.

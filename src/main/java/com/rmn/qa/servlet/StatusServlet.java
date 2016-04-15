@@ -11,8 +11,19 @@
  */
 package com.rmn.qa.servlet;
 
-import com.google.common.io.ByteStreams;
-import com.rmn.qa.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.openqa.grid.common.GridDocHelper;
 import org.openqa.grid.internal.Registry;
 import org.openqa.grid.internal.RemoteProxy;
@@ -28,13 +39,12 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
+import com.google.common.io.ByteStreams;
+import com.rmn.qa.AutomationConstants;
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.AutomationRequestMatcher;
+import com.rmn.qa.AutomationRunRequest;
 
 /**
  * Front end to monitor what is currently happening on the proxies. The display is defined by
@@ -122,7 +132,7 @@ public class StatusServlet extends RegistryBasedServlet {
             if(instanceId != null) {
                 AutomationDynamicNode node = AutomationContext.getContext().getNode((String)instanceId);
                 if(node != null) {
-                    localBuilder.append("<br>EC2 dynamic node.");
+                    localBuilder.append("<br>EC2 dynamic node " + node.getInstanceId());
                     localBuilder.append("<br>Start time " + node.getStartDate());
                     localBuilder.append("<br>Current shutdown time ").append(node.getEndDate());
                     localBuilder.append("<br>Requested test run ").append(node.getUuid());
