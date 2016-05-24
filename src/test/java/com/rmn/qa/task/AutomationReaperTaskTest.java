@@ -88,4 +88,39 @@ public class AutomationReaperTaskTest {
         AutomationReaperTask task = new AutomationReaperTask(null,null);
         Assert.assertEquals("Name should be the same",AutomationReaperTask.NAME, task.getDescription()  );
     }
+
+    @Test
+    public void testNodeMatch(){
+        Reservation reservation = new Reservation();
+        Instance instance = new Instance();
+        String instanceId = "foo";
+        instance.setInstanceId(instanceId);
+        instance.setLaunchTime(AutomationUtils.modifyDate(new Date(),-5,Calendar.HOUR));
+        AutomationContext.getContext().addNode(new AutomationDynamicNode("faky",instanceId,null,null,new Date(),1));
+        List<Tag> tags = new ArrayList<>();
+        Tag nodeTag = new Tag("LaunchSource","SeleniumGridScalerPlugi_" + instanceId);
+        tags.add(nodeTag);
+        instance.setTags(tags);
+        reservation.setInstances(Arrays.asList(instance));
+        String expectedTag = "Tags: [{Key: LaunchSource,Value: SeleniumGridScalerPlugi_foo}]";
+        Assert.assertTrue("The node tag should match!",reservation.toString().contains(expectedTag));
+    }
+
+    @Test
+    public void testNodeDoNotMatch(){
+        Reservation reservation = new Reservation();
+        Instance instance = new Instance();
+        String instanceId = "foo";
+        instance.setInstanceId(instanceId);
+        instance.setLaunchTime(AutomationUtils.modifyDate(new Date(),-5,Calendar.HOUR));
+        AutomationContext.getContext().addNode(new AutomationDynamicNode("faky",instanceId,null,null,new Date(),1));
+        List<Tag> tags = new ArrayList<>();
+        Tag nodeTag = new Tag("LaunchSource","SeleniumGridScalerPlugi_" + instanceId);
+        tags.add(nodeTag);
+        instance.setTags(tags);
+        reservation.setInstances(Arrays.asList(instance));
+        String expectedTag = "Tags: [{Key: LaunchSource,Value: SeleniumGridScalerPlugi_nofoo}]";
+        reservation.setInstances(Arrays.asList(instance));
+        Assert.assertFalse("The node tag should not match!",reservation.toString().contains(expectedTag));
+    }
 }

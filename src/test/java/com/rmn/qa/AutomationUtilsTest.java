@@ -14,7 +14,7 @@ package com.rmn.qa;
 
 import junit.framework.Assert;
 import org.junit.Test;
-
+import org.easymock.EasyMock;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -49,6 +49,22 @@ public class AutomationUtilsTest {
         c.add(Calendar.SECOND,-10);
         Date afterDate = c.getTime();
         Assert.assertTrue("Date should be considered after", AutomationUtils.isCurrentTimeAfterDate(afterDate,9,Calendar.SECOND));
+    }
+
+    @Test
+    public void testReadMetaURIResponseWhenNoResponse() throws IOException {
+        BufferedReader reader = EasyMock.createMock(BufferedReader.class);
+        EasyMock.expect(reader.readLine()).andReturn("NoResponse");
+        EasyMock.replay(reader);
+        Assert.assertEquals("NoResponse",AutomationUtils.readMetaURIResponse(reader));
+    }
+
+    @Test
+    public void testReadMetaURIResponse() throws IOException {
+        BufferedReader reader = EasyMock.createMock(BufferedReader.class);
+        EasyMock.expect(reader.readLine()).andReturn("fake123");
+        EasyMock.replay(reader);
+        Assert.assertEquals("fake123",AutomationUtils.readMetaURIResponse(reader));
     }
 
 }
