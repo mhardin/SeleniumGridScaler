@@ -42,7 +42,7 @@ public class AutomationCapabilityMatcherTest {
         AutomationCapabilityMatcher matcher = new AutomationCapabilityMatcher();
         Map<String,Object> nodeCapability = new HashMap<String,Object>();
         nodeCapability.put(CapabilityType.BROWSER_NAME,"firefox");
-        nodeCapability.put(AutomationConstants.INSTANCE_ID,"foobar");
+        nodeCapability.put(AutomationConstants.INSTANCE_ID,"foo");
         Map<String,Object> testCapability = new HashMap<String,Object>();
         testCapability.put(CapabilityType.BROWSER_NAME,"firefox");
         AutomationDynamicNode node = new AutomationDynamicNode("uuid","id","browser","os", new Date(),10);
@@ -130,5 +130,7 @@ public class AutomationCapabilityMatcherTest {
     @After
     public void clearSystemProperty() {
         System.clearProperty(AutomationConstants.EXTRA_CAPABILITIES_PROPERTY_NAME);
+        // Also clear out the old AutomationRunContext
+        AutomationContext.refreshContext();
     }
 }

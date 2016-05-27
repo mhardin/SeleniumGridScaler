@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.junit.After;
 import org.junit.Test;
 
 import com.amazonaws.services.ec2.model.Instance;
@@ -18,13 +19,18 @@ import junit.framework.Assert;
 
 public class AutomationReaperTaskTest {
 
+	@After
+    public void tearDown() {
+        AutomationContext.refreshContext();
+    }
+	
     @Test
     public void testShutdown() {
         MockVmManager ec2 = new MockVmManager();
         Reservation reservation = new Reservation();
         Instance instance = new Instance();
         instance.setState(new InstanceState().withCode(10));
-        String instanceId = "foobar";
+        String instanceId = "foo";
         instance.setInstanceId(instanceId);
         instance.setLaunchTime(AutomationUtils.modifyDate(new Date(),-5,Calendar.HOUR));
         reservation.setInstances(Arrays.asList(instance));
