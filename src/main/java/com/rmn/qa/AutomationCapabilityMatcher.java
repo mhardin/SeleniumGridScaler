@@ -11,15 +11,16 @@
  */
 package com.rmn.qa;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.grid.internal.utils.DefaultCapabilityMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Custom CapabilityMatcher which will not match a node that is marked as Expired/Terminated, which will happen
@@ -73,7 +74,7 @@ public class AutomationCapabilityMatcher extends DefaultCapabilityMatcher {
         // If the run that spun up these hubs is still happening, just perform the default matching behavior
         // as that run is the one that requested these nodes.
         AutomationDynamicNode node = context.getNode(instanceId);
-        if(node != null && (node.getStatus() == AutomationDynamicNode.STATUS.EXPIRED || node.getStatus() == AutomationDynamicNode.STATUS.TERMINATED) ) {
+        if(node != null && (node.getStatus() != AutomationDynamicNode.STATUS.RUNNING) ) {
             log.debug(String.format("Node [%s] will not be used to match a request as it is expired/terminated",instanceId));
             // If the run that spun these hubs up is not in progress AND this node has been flagged to shutdown,
             // do not match this node up to fulfill a test request

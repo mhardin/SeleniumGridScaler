@@ -8,8 +8,8 @@ A Selenium Grid plugin for integrating your project with AWS (Amazon Web Service
 #### Details
 New nodes will be started as needed depending on the browser requested:
 
-* Chrome -  New c3.large instances will be started capable of running 6 threads (tests) per instance.  If your test run requests 30 threads, this will result in 5 nodes being started up, where as 31 are requested, this will result in 6 nodes started up.  Note that these can also run firefox tests as well
-* Firefox - New t2.micro instances will be started capable of running 1 thread (test) per instance.  Selenium window focus issues were the reason behind running 1 thread per virtual machine.  These instances can run chrome tests as well.
+* Chrome -  New c4.large instances will be started capable of running 5 threads (tests) per instance.  If your test run requests 30 threads, this will result in 6 nodes being started up, where as 31 are requested, this will result in 7 nodes started up.  Note that these can also run firefox tests as well
+* Firefox - New t2.small instances will be started capable of running 1 thread (test) per instance.  Selenium window focus issues were the reason behind running 1 thread per virtual machine.  These instances can run chrome tests as well.
 * Internet Explorer - IE is currently not supported.  There are plans to add IE support in an upcoming release.
 
 AWS bills by rounding up to the next hour, so if you leave a machine on for 5 minutes, you get billed for the full hour (60 minutes).  Based on this logic, SeleniumGridScaler's automatic termination logic will terminate nodes at the end of the current billing cycle, taking into account current test load.  So if there is enough test load, say 12 tests running and only 12 threads are online (2 chrome instances each capable of running 6 for a total of 12), all of the nodes will stay on.  If the current time crosses into the next billing cycle (e.g. they're on for 1 hour and 5 minutes), SeleniumGridScaler will not attempt to terminate them until the end of that next billing cycle (will attempt to terminate at 1 hour and 55 minutes instead of prematurely terminating paid for resources).
@@ -58,6 +58,7 @@ In your test run, you must send a GET HTTP request to the servlet, with the requ
 * browser - This is the browser you want to run in.  Currently supported values, are chrome, firefox, and internetexplorer
 * threadCount - Number of threads you want to run for your tests
 * uuid - Unique test run identifier
+* os - (Optional) This represents Selenium's Platform that you want to run in (can be Platform.ANY as well).  Linux/Unix is currently the only supported platform.  If you don't specify a platform, the logic will default to Platform.ANY and linux nodes will be started.
 
 If you wanted to do a test run with 10 threads in chrome with a test run UUID of 'testRun1', the HTTP request would look something like this
 
@@ -137,6 +138,8 @@ Possible values to override/implement:
 Please see AWS documentation for more information on how to use/setup these things
 * tags (optional) - If you want to add any [tags](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html) to your instances as they're started, prefix your comma separated key/value pairs with 'tag' (e.g. 'tagDepartment=Department,QA' would add a tag with a key of 'Department' and a value of 'QA')
 
+## Current Issues
+Currently Windows is not supported.  There was an AMI I built out but forgot to make public before changing jobs.  So, if you want to run in Windows, you'll basically need to mimic the startup/configuration logic done in ~/grid/grid_start_node.sh on the linux AMI included in aws.properties.default
 
 ## Contributing
 

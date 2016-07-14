@@ -12,23 +12,6 @@
 
 package com.rmn.qa.aws;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.InstanceState;
-import com.amazonaws.services.ec2.model.InstanceStateChange;
-import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.services.ec2.model.RunInstancesRequest;
-import com.amazonaws.services.ec2.model.RunInstancesResult;
-import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-import com.amazonaws.services.ec2.model.TerminateInstancesResult;
-import com.rmn.qa.AutomationConstants;
-import com.rmn.qa.NodesCouldNotBeStartedException;
-import junit.framework.Assert;
-import org.apache.commons.collections.CollectionUtils;
-import org.junit.After;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -38,7 +21,28 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-public class VmManagerTest {
+import org.apache.commons.collections4.CollectionUtils;
+import org.junit.After;
+import org.junit.Test;
+import org.openqa.selenium.Platform;
+
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceState;
+import com.amazonaws.services.ec2.model.InstanceStateChange;
+import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.RunInstancesRequest;
+import com.amazonaws.services.ec2.model.RunInstancesResult;
+import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.rmn.qa.AutomationConstants;
+import com.rmn.qa.BaseTest;
+import com.rmn.qa.NodesCouldNotBeStartedException;
+
+import junit.framework.Assert;
+
+public class VmManagerTest extends BaseTest {
 
     @After
     public void clear() {
@@ -93,7 +97,7 @@ public class VmManagerTest {
         properties.setProperty(AutomationConstants.AWS_PRIVATE_KEY,privateKey);
         String region = "east";
         AwsVmManager AwsVmManager = new AwsVmManager(client,properties,region);
-        BasicAWSCredentials credentials = AwsVmManager.getCredentials();
+        AWSCredentials credentials = AwsVmManager.getCredentials();
         Assert.assertEquals("Access key IDs should match",accessKey,credentials.getAWSAccessKeyId());
         Assert.assertEquals("Access key IDs should match",privateKey,credentials.getAWSSecretKey());
     }
@@ -110,7 +114,7 @@ public class VmManagerTest {
         properties.setProperty(AutomationConstants.AWS_PRIVATE_KEY,"moreGibberish");
         String region = "east";
         AwsVmManager AwsVmManager = new com.rmn.qa.aws.AwsVmManager(client,properties,region);
-        BasicAWSCredentials credentials = AwsVmManager.getCredentials();
+        AWSCredentials credentials = AwsVmManager.getCredentials();
         Assert.assertEquals("Access key IDs should match", accessKey, credentials.getAWSAccessKeyId());
         Assert.assertEquals("Access key IDs should match", privateKey, credentials.getAWSSecretKey());
     }
@@ -125,12 +129,13 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os="windows";
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.WINDOWS;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
         manageEC2.setUserData(userData);
-        List<Instance> instances = manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
+        manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
         RunInstancesRequest request = client.getRunInstancesRequest();
         Assert.assertEquals("Min count should match thread count requested", threadCount, request.getMinCount());
         Assert.assertEquals("Max count should match thread count requested", threadCount, request.getMaxCount());
@@ -150,7 +155,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os=null;
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = null;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -183,7 +189,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os=null;
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.ANY;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -225,7 +232,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="internet explorer",os=null;
+        String region = "east", uuid="uuid",browser="internet explorer";
+        Platform os = null;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -258,7 +266,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os="badOs";
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.MAC;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -271,7 +280,7 @@ public class VmManagerTest {
         try{
             manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
         } catch(RuntimeException e) {
-            Assert.assertTrue("Failure message should be correct",e.getMessage().contains(os));
+            Assert.assertTrue("Failure message should be correct",e.getMessage().contains(os.toString()));
             return;
         }
         Assert.fail("Call should fail due to invalid OS");
@@ -374,7 +383,7 @@ public class VmManagerTest {
 
         String region = "east";
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
-        BasicAWSCredentials credentials = manageEC2.getCredentials();
+        AWSCredentials credentials = manageEC2.getCredentials();
         manageEC2.setCredentials(credentials);
         String s3Config = manageEC2.getS3Config();
         Assert.assertTrue("Access key should have been injected into the file", s3Config.contains(accessKey));
@@ -429,13 +438,14 @@ public class VmManagerTest {
     // Test that the correct node config file is generated for a windows os
     public void testGetNodeConfigWindows() {
         MockManageVm manageEC2 = new MockManageVm(null,null,null);
-        String uuid="uuid",hostName="hostName",browser="chrome",os="windows";
+        String uuid="uuid",hostName="hostName",browser="chrome";
+        Platform os = Platform.WINDOWS;
         int maxSessions = 5;
         String nodeConfig = manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions);
         Assert.assertTrue("Max sessions should have been passed in",nodeConfig.contains(String.valueOf(maxSessions)));
         Assert.assertTrue("UUID should have been passed in",nodeConfig.contains(uuid));
         Assert.assertTrue("Browser should have been passed in",nodeConfig.contains(browser));
-        Assert.assertTrue("OS should have been passed in",nodeConfig.contains(os));
+        Assert.assertTrue("OS should have been passed in",nodeConfig.contains(os.toString()));
         Assert.assertTrue("Host name should have been passed in",nodeConfig.contains(hostName));
         Assert.assertTrue("IE thread count should have been passed in", nodeConfig.contains(String.valueOf(AwsVmManager.FIREFOX_IE_THREAD_COUNT)));
     }
@@ -444,13 +454,14 @@ public class VmManagerTest {
     // Test that the correct node config file is generated for a linux os
     public void testGetNodeConfigLinux() {
         MockManageVm manageEC2 = new MockManageVm(null,null,null);
-        String uuid="uuid",hostName="hostName",browser="chrome",os="linux";
+        String uuid="uuid",hostName="hostName",browser="chrome";
+        Platform os = Platform.LINUX;
         int maxSessions = 5;
         String nodeConfig = manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions);
         Assert.assertTrue("Max sessions should have been passed in",nodeConfig.contains(String.valueOf(maxSessions)));
         Assert.assertTrue("UUID should have been passed in",nodeConfig.contains(uuid));
         Assert.assertTrue("Browser should have been passed in",nodeConfig.contains(browser));
-        Assert.assertTrue("OS should have been passed in",nodeConfig.contains(os));
+        Assert.assertTrue("OS should have been passed in",nodeConfig.contains(os.toString()));
         Assert.assertTrue("Host name should have been passed in",nodeConfig.contains(hostName));
        // Assert.assertTrue("IE thread count should have been passed in", nodeConfig.contains(String.valueOf(AwsVmManager.CHROME_THREAD_COUNT)));
     }
@@ -459,12 +470,13 @@ public class VmManagerTest {
     // Test that the correct exception is throw when you specified a bad OS for the node config
     public void testGetNodeConfigBadOs() {
         MockManageVm manageEC2 = new MockManageVm(null,null,null);
-        String uuid="uuid",hostName="hostName",browser="chrome",os="badOs";
+        String uuid="uuid",hostName="hostName",browser="chrome";
+        Platform os = Platform.MAC;
         int maxSessions = 5;
         try{
             manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions);
         } catch(RuntimeException e) {
-            Assert.assertTrue("Failure message should be correct",e.getMessage().contains(os));
+            Assert.assertTrue("Failure message should be correct",e.getMessage().contains(os.toString()));
             return;
         }
         Assert.fail("Node config should not work due to bad OS");
@@ -483,7 +495,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os="linux";
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.LINUX;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -515,7 +528,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os="linux";
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.LINUX;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -542,7 +556,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os="linux";
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.LINUX;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -575,7 +590,8 @@ public class VmManagerTest {
         runInstancesResult.setReservation(reservation);
         client.setRunInstances(runInstancesResult);
         Properties properties = new Properties();
-        String region = "east", uuid="uuid",browser="chrome",os="linux";
+        String region = "east", uuid="uuid",browser="chrome";
+        Platform os = Platform.LINUX;
         Integer threadCount = 5,maxSessions=5;
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);
         String userData = "userData";
@@ -601,10 +617,9 @@ public class VmManagerTest {
     }
 
     @Test
-    //Tests that the client is initialized and exception is not thrown
+    //Tests that if the client is not initialized, an exception with appropriate message is thrown
     public void testClientInitialized(){
         AwsVmManager manageEC2 = new AwsVmManager();
-        String region = "east";
         try{
             manageEC2.launchNodes("foo", "bar", 4, "userData", false);
         } catch(Exception e) {

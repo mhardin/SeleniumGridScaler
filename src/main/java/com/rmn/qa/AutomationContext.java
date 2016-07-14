@@ -37,7 +37,7 @@ public class AutomationContext {
     /**
      * Clears out the previous context.  Used for unit testing
      */
-    public static void refreshContext() {
+    public static synchronized void refreshContext() {
         AutomationContext.context = new AutomationRunContext();
     }
 

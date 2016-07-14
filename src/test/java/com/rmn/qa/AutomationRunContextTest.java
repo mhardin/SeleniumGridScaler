@@ -12,17 +12,6 @@
 
 package com.rmn.qa;
 
-import junit.framework.Assert;
-import nl.jqno.equalsverifier.EqualsVerifier;
-import nl.jqno.equalsverifier.Warning;
-import org.junit.After;
-import org.junit.Test;
-import org.openqa.grid.common.SeleniumProtocol;
-import org.openqa.grid.internal.ProxySet;
-import org.openqa.grid.internal.TestSlot;
-import org.openqa.grid.internal.utils.CapabilityMatcher;
-import org.openqa.selenium.remote.CapabilityType;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,20 +19,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
+import org.openqa.grid.common.SeleniumProtocol;
+import org.openqa.grid.internal.ProxySet;
+import org.openqa.grid.internal.TestSlot;
+import org.openqa.grid.internal.utils.CapabilityMatcher;
+import org.openqa.selenium.Platform;
+import org.openqa.selenium.remote.CapabilityType;
+
+import junit.framework.Assert;
+import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
+
 /**
  * Created by mhardin on 5/1/14.
  */
-public class AutomationRunContextTest {
-
-    @After()
-    public void cleanUp() {
-        AutomationContext.refreshContext();
-    }
+public class AutomationRunContextTest extends BaseTest {
 
     @Test
     // Tests that an old run gets cleaned up (removed)
     public void testOldRun() {
-        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"firefox","10","linux",AutomationUtils.modifyDate(new Date(),-15, Calendar.MINUTE));
+        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"firefox","10",Platform.LINUX,AutomationUtils.modifyDate(new Date(),-15, Calendar.MINUTE));
          AutomationRunContext context = AutomationContext.getContext();
         context.addRun(oldRequest);
 
@@ -71,7 +67,7 @@ public class AutomationRunContextTest {
     @Test
     // Tests that a new run does not get cleaned up (removed)
     public void testNewRunIE() {
-        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"internetexplorer","10","linux",AutomationUtils.modifyDate(new Date(),-7, Calendar.MINUTE));
+        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"internetexplorer","10",Platform.LINUX,AutomationUtils.modifyDate(new Date(),-7, Calendar.MINUTE));
         AutomationRunContext context = AutomationContext.getContext();
         context.addRun(oldRequest);
 
@@ -86,7 +82,7 @@ public class AutomationRunContextTest {
     @Test
     // Tests that a new run does not get cleaned up (removed)
     public void testOldRunIE() {
-        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"internetexplorer","10","linux",AutomationUtils.modifyDate(new Date(),-15, Calendar.MINUTE));
+        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"internetexplorer","10",Platform.LINUX,AutomationUtils.modifyDate(new Date(),-15, Calendar.MINUTE));
         AutomationRunContext context = AutomationContext.getContext();
         context.addRun(oldRequest);
 
@@ -102,7 +98,7 @@ public class AutomationRunContextTest {
     // Tests that a run with slots does not get removed
     public void testActiveSession() {
         String uuid = "uuid";
-        AutomationRunRequest request = new AutomationRunRequest(uuid,10,"firefox","10","linux",AutomationUtils.modifyDate(new Date(),-1, Calendar.HOUR));
+        AutomationRunRequest request = new AutomationRunRequest(uuid,10,"firefox","10",Platform.LINUX,AutomationUtils.modifyDate(new Date(),-1, Calendar.HOUR));
         AutomationRunContext context = AutomationContext.getContext();
         context.addRun(request);
 
@@ -129,7 +125,7 @@ public class AutomationRunContextTest {
     // Tests that a run with slots does not get removed
     public void testNoSessions() {
         String uuid = "uuid";
-        AutomationRunRequest request = new AutomationRunRequest(uuid,10,"firefox","10","linux",AutomationUtils.modifyDate(new Date(),-1, Calendar.HOUR));
+        AutomationRunRequest request = new AutomationRunRequest(uuid,10,"firefox","10",Platform.LINUX,AutomationUtils.modifyDate(new Date(),-1, Calendar.HOUR));
         AutomationRunContext context = AutomationContext.getContext();
         context.addRun(request);
 
@@ -250,7 +246,7 @@ public class AutomationRunContextTest {
         capabilities.put(CapabilityType.PLATFORM,"linux");
         capabilities.put(CapabilityType.BROWSER_NAME,"chrome");
         capabilities.put(AutomationConstants.UUID,uuid);
-        AutomationRunRequest request = new AutomationRunRequest(uuid,10,"chrome","23","linux", AutomationUtils.modifyDate(new Date(),-5,Calendar.MINUTE));
+        AutomationRunRequest request = new AutomationRunRequest(uuid,10,"chrome","23",Platform.LINUX, AutomationUtils.modifyDate(new Date(),-5,Calendar.MINUTE));
         runContext.addRun(request);
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         testSlot.getNewSession(capabilities);

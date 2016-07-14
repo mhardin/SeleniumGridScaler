@@ -13,9 +13,11 @@ package com.rmn.qa.task;
 
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.openqa.grid.internal.ProxySet;
+import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.slf4j.Logger;
@@ -23,8 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
-import com.rmn.qa.AutomationContext;
 import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.BrowserPlatformPair;
 import com.rmn.qa.NodesCouldNotBeStartedException;
 import com.rmn.qa.RegistryRetriever;
 import com.rmn.qa.aws.VmManager;
@@ -38,11 +41,10 @@ import com.rmn.qa.servlet.AutomationTestRunServlet;
 public class AutomationScaleNodeTask extends AbstractAutomationCleanupTask {
 
     private static final Logger log = LoggerFactory.getLogger(AutomationScaleNodeTask.class);
-    private Map<String, Date> queuedBrowsers = Maps.newHashMap();
+    private static final int QUEUED_REQUEST_THRESHOLD_IN_MS = 5000;
+    private Map<BrowserPlatformPair, Date> queuedBrowsersPlatforms = Maps.newHashMap();
+    private Map<BrowserPlatformPair, ScaleCapacityContext> pendingStartupCapacity = Maps.newHashMap();
     private VmManager vmManager;
-    // Map to maintain when a node was pending to enforce timeout logic if the node never comes up
-    private Map<String,Date> nodeToCreation = Maps.newHashMap();
-
     @VisibleForTesting
     static final String NAME = "Automation Scale Node Task";
 
@@ -74,25 +76,25 @@ public class AutomationScaleNodeTask extends AbstractAutomationCleanupTask {
     }
 
     @VisibleForTesting
-    void startNodes(VmManager vmManager, int browsersToStart, String browser) throws NodesCouldNotBeStartedException {
-        AutomationTestRunServlet.startNodes(vmManager, "AD-HOC", browsersToStart, browser, null);
+    List<AutomationDynamicNode> startNodes(VmManager vmManager, int browsersToStart, String browser, Platform platform) throws NodesCouldNotBeStartedException {
+        return AutomationTestRunServlet.startNodes(vmManager, "AD-HOC", browsersToStart, browser, platform);
     }
 
     /**
-     * Returns true if nodePendingDate is more than 15 seconds older than the current time
+     * Returns true if nodePendingDate is more than 5 seconds older than the current time
      */
     @VisibleForTesting
-    boolean isNodeOldEnoughToCreateNewNode(Date nowDate, Date nodePendingDate) {
-        return nowDate.getTime() - nodePendingDate.getTime() > 15000;
+    boolean haveTestRequestsBeenQueuedForLongEnough(Date nowDate, Date nodePendingDate) {
+        return nowDate.getTime() - nodePendingDate.getTime() > QUEUED_REQUEST_THRESHOLD_IN_MS;
     }
 
     /**
      * Returns true if the platform is not specified, is all platforms, or is linux
-     * @param platform
+     * @param platformPair
      * @return
      */
-    private boolean isPlatformEligibleToScale(Object platform) {
-        return platform == null || "linux".equalsIgnoreCase(platform.toString()) || "ANY".equals(platform.toString()) || "*".equals(platform.toString());
+    private boolean isEligibleToScale(BrowserPlatformPair platformPair) {
+        return AutomationUtils.browserAndPlatformSupported(platformPair);
     }
 
     // We're going to continuously iterate over queued test requests with the hub.  If there are no nodes pending startup, we're basically going to calculate load
@@ -100,79 +102,100 @@ public class AutomationScaleNodeTask extends AbstractAutomationCleanupTask {
     @Override
     public void doWork() {
         log.warn("Doing node scale work");
-        if (AutomationContext.getContext().noPendingNodesExist()) {
-            nodeToCreation.clear();
-            Iterator<DesiredCapabilities> pendingCapabilities = getDesiredCapabilities().iterator();
-            if (pendingCapabilities.hasNext()) {
-                log.info("No nodes pending startup exist.  Analyzing currently queued requests.");
-                while (pendingCapabilities.hasNext()) {
-                    DesiredCapabilities capabilities = pendingCapabilities.next();
-                    String browser = (String) capabilities.getCapability(CapabilityType.BROWSER_NAME);
-                    // Don't attempt to calculate load for browsers we cannot start
-                    if (!AutomationTestRunServlet.browserSupportedByAmis(browser)) {
-                        log.warn("Unsupported browser: " + browser);
-                        continue;
-                    }
-                    Object platform = capabilities.getCapability(CapabilityType.PLATFORM);
-                    // Ignore requests specifying a specific platform for now unless its linux
-                    if (isPlatformEligibleToScale(platform)) {
-                        log.warn("Computing load for new nodes for browser: " + browser);
-                        queuedBrowsers.computeIfAbsent(browser, s -> new Date());
-                    }
+        // Iterate over all queued requests and track browser/platform combinations that are eligible to scale capacity for
+        Iterator<DesiredCapabilities> pendingCapabilities = getDesiredCapabilities().iterator();
+        if (pendingCapabilities.hasNext()) {
+            log.info("Analyzing currently queued requests");
+            while (pendingCapabilities.hasNext()) {
+                DesiredCapabilities capabilities = pendingCapabilities.next();
+                String browser = (String) capabilities.getCapability(CapabilityType.BROWSER_NAME);
+                Object platformObject = capabilities.getCapability(CapabilityType.PLATFORM);
+                Platform platform = AutomationUtils.getPlatformFromObject(platformObject);
+                // If a valid platform wasn't able to be parsed from the queued test request, go ahead and default to Platform.ANY,
+                // as Platform is not required for this plugin
+                if (platform == null) {
+                    // Default to ANY here and let AwsVmManager dictate what ANY translates to
+                    platform = Platform.ANY;
                 }
-            }
-        } else {
-            log.warn("Nodes pending startup still exist, skipping");
-            Iterator<String> iterator = AutomationContext.getContext().getPendingStartupNodes().iterator();
-            while (iterator.hasNext()) {
-                String node = iterator.next();
-                if (!nodeToCreation.containsKey(node)) {
-                    nodeToCreation.put(node, new Date());
-                    log.warn(String.format("Pending node %s found for the first time.  Adding", node));
-                } else {
-                    Date createdDate = nodeToCreation.get(node);
-                    // If a node has been pending for over 10 minutes, its probably never going to come online.
-                    // Stop tracking it so we don't get hung up indefinitely waiting for this node to come online
-                    if ((System.currentTimeMillis() - createdDate.getTime()) > 600000) { // 10 minutes
-                        log.error(String.format("Node %s was pending longer than 10 minutes.  Removing.", node));
-                        iterator.remove();
-                        nodeToCreation.remove(node);
-                        continue;
-                    }
+                // Group all platforms by their underlying family
+                platform = AutomationUtils.getUnderlyingFamily(platform);
+                BrowserPlatformPair desiredPair = new BrowserPlatformPair(browser, platform);
+
+                // Don't attempt to calculate load for browsers & platform families we cannot start
+                if (!isEligibleToScale(desiredPair)) {
+                    log.warn("Unsupported browser and platform pair, browser:  " + browser + " platform family: " + platform.family());
+                    continue;
                 }
-                log.warn("Node pending startup: " + node);
+
+                // Handle requests for specific browser platforms.
+                queuedBrowsersPlatforms.computeIfAbsent(new BrowserPlatformPair(browser, platform), s -> new Date());
             }
-            // Clear out all queued browsers as we need to reset the logic if nodes are still coming online
-            queuedBrowsers.clear();
         }
-        Iterator<String> iterator = queuedBrowsers.keySet().iterator();
-        while(iterator.hasNext()) {
-            String browser = iterator.next();
+        // Now, iterate over eligible browser/platform combinations that we're tracking and attempt to scale up
+        Iterator<BrowserPlatformPair> queuedBrowsersIterator = queuedBrowsersPlatforms.keySet().iterator();
+        while(queuedBrowsersIterator.hasNext()) {
+            BrowserPlatformPair originalBrowserPlatformRequest = queuedBrowsersIterator.next();
             Date currentTime = new Date();
-            Date timeBrowserQueued = queuedBrowsers.get(browser);
-            if (isNodeOldEnoughToCreateNewNode(currentTime, timeBrowserQueued)) { // If we've had pending queued requests for this browser for at least 15 seconds
-                Iterator<DesiredCapabilities> pendingCapabilities = getDesiredCapabilities().iterator();
+            Date timeBrowserPlatformQueued = queuedBrowsersPlatforms.get(originalBrowserPlatformRequest);
+            if (haveTestRequestsBeenQueuedForLongEnough(currentTime, timeBrowserPlatformQueued)) { // If we've had pending queued requests for this browser for at least 5 seconds
+                pendingCapabilities = getDesiredCapabilities().iterator();
                 if (pendingCapabilities.hasNext()) {
                     int browsersToStart = 0;
                     while (pendingCapabilities.hasNext()) {
-                        DesiredCapabilities capabilities = pendingCapabilities.next();
-                        String queuedBrowser = (String) capabilities.getCapability(CapabilityType.BROWSER_NAME);
-                        if (browser.equals(queuedBrowser)) {
+                        DesiredCapabilities currentlyQueuedCapabilities = pendingCapabilities.next();
+                        String currentlyQueuedBrowser = (String) currentlyQueuedCapabilities.getCapability(CapabilityType.BROWSER_NAME);
+                        Object platformObject = currentlyQueuedCapabilities.getCapability(CapabilityType.PLATFORM);
+                        Platform currentlyQueuedPlatform = AutomationUtils.getPlatformFromObject(platformObject);
+                        // If a valid platform wasn't able to be parsed from the queued test request, go ahead and default to Platform.ANY,
+                        // as Platform is not required for this plugin
+                        if (currentlyQueuedPlatform == null) {
+                            currentlyQueuedPlatform = Platform.ANY;
+                        }
+                        // Group all platforms by their underlying family
+                        currentlyQueuedPlatform = AutomationUtils.getUnderlyingFamily(currentlyQueuedPlatform);
+                        if (originalBrowserPlatformRequest.equals(new BrowserPlatformPair(currentlyQueuedBrowser, currentlyQueuedPlatform))) {
                             browsersToStart++;
                         }
                     }
-                    if (browsersToStart > 0) {
-                        log.info(String.format("Spinning up %d threads for browser %s based on current test load", browsersToStart, browser));
-                        try {
-                            this.startNodes(vmManager, browsersToStart, browser);
-                        } catch (NodesCouldNotBeStartedException e) {
-                            throw new RuntimeException("Error scaling up nodes", e);
-                        }
-                    }
+                    this.startNodesForBrowserPlatform(originalBrowserPlatformRequest, browsersToStart);
                 }
                 // Regardless of if we spun up browsers or not, clear this count out
-                iterator.remove();
+                queuedBrowsersIterator.remove();
             }
         }
+    }
+
+    /**
+     * Starts up the specified number of browsers for the specified browser/platform pair.  Takes into account nodes that are pending startup
+     * @param browserPlatform
+     * @param browsersToStart
+     */
+    private void startNodesForBrowserPlatform(BrowserPlatformPair browserPlatform, int browsersToStart) {
+        // If there are queued up browser requests, go ahead and subtract nodes pending startup from the count to account for the pending capacity
+        if (browsersToStart > 0 && pendingStartupCapacity.containsKey(browserPlatform)) {
+            ScaleCapacityContext pendingCapacityContext = pendingStartupCapacity.get(browserPlatform);
+            // Go ahead and clear out any nodes that have started up
+            pendingCapacityContext.clearPendingNodes();
+            // This represents capacity that is pending startup and we need to subtract it from the total amount of nodes that we want to start
+            // so we do not get an excess of capacity
+            int pendingCapacity = pendingCapacityContext.getTotalCapacityCount();
+            if (pendingCapacity > 0) {
+                log.warn(String.format("Subtracting %d capacity from queued load %s for browser/platform %s", pendingCapacity, browsersToStart, browserPlatform));
+            }
+            browsersToStart = browsersToStart - pendingCapacity;
+        }
+        if (browsersToStart > 0) {
+            log.info(String.format("Spinning up %d threads for browser/platform %s based on current test load", browsersToStart, browserPlatform));
+            try {
+                List<AutomationDynamicNode> createdNodes = this.startNodes(vmManager, browsersToStart, browserPlatform.getBrowser(), browserPlatform.getPlatform());
+                // Grab the scale context object for this browser/platform pair
+                ScaleCapacityContext contextForBrowserPair = pendingStartupCapacity.computeIfAbsent(browserPlatform, browserPlatformPair -> new ScaleCapacityContext());
+                // Add all the created nodes to the context object so we can compute load programmatically for pending browsers
+                contextForBrowserPair.addAll(createdNodes);
+            } catch (NodesCouldNotBeStartedException e) {
+                throw new RuntimeException("Error scaling up nodes", e);
+            }
+        }
+
     }
 }

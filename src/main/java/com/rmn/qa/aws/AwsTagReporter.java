@@ -11,6 +11,17 @@
  */
 package com.rmn.qa.aws;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
@@ -71,7 +82,7 @@ public class AwsTagReporter extends Thread {
                     instancesFound = true;
                 }
             } catch(Throwable t) {
-                log.error("Error finding instances.  Sleeping.");
+                log.warn("Error finding instances.  Sleeping for 500ms.");
                 try {
                     sleep();
                 } catch (InterruptedException e) {
@@ -100,7 +111,7 @@ public class AwsTagReporter extends Thread {
                 setTagsForInstance(instanceId);
             }
             log.info("Tags added!");
-        } catch(IndexOutOfBoundsException | ClassCastException e) {
+        } catch(IndexOutOfBoundsException | ClassCastException | AmazonServiceException e) {
             log.error("Error adding tags.  Please make sure your tag syntax is correct (refer to the readme)",e);
         }
     }

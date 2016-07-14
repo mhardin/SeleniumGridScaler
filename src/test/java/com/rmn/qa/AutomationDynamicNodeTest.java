@@ -12,14 +12,15 @@
 
 package com.rmn.qa;
 
+import org.junit.Test;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
-import org.junit.Test;
 
 /**
  * Created by mhardin on 5/1/14.
  */
-public class AutomationDynamicNodeTest {
+public class AutomationDynamicNodeTest extends BaseTest {
 
     @Test
     public void equalsContract() {

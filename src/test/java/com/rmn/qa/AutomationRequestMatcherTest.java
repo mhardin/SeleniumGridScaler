@@ -12,24 +12,27 @@
 
 package com.rmn.qa;
 
-import junit.framework.Assert;
-import org.junit.After;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+
 import org.junit.Test;
 import org.openqa.grid.common.SeleniumProtocol;
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.TestSlot;
+import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.CapabilityType;
 
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.util.*;
+import com.google.common.collect.Maps;
 
-public class AutomationRequestMatcherTest {
+import junit.framework.Assert;
 
-    @After
-    public void cleanUp() {
-        AutomationContext.refreshContext();
-    }
+public class AutomationRequestMatcherTest extends BaseTest {
 
     @Test
     // Tests that a node in the Expired state is not considered as a free resource
@@ -43,11 +46,11 @@ public class AutomationRequestMatcherTest {
         ProxySet proxySet = new ProxySet(false);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID, nodeId);
         proxy.setConfig(config);
-        List<TestSlot> testSlots = new ArrayList<TestSlot>();
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        List<TestSlot> testSlots = new ArrayList<>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,browser);
         testSlots.add(new TestSlot(proxy, SeleniumProtocol.WebDriver, null, capabilities));
         proxy.setTestSlots(testSlots);
@@ -71,10 +74,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
         proxy.setMaxNumberOfConcurrentTestSessions(5);
-        Map<String,Object> config = new HashMap<>();
+        Map<String,Object> config = Maps.newHashMap();
         proxy.setConfig(config);
-        List<TestSlot> testSlots = new ArrayList<TestSlot>();
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        List<TestSlot> testSlots = new ArrayList<>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,browser);
         testSlots.add(new TestSlot(proxy, SeleniumProtocol.WebDriver, null, capabilities));
         proxy.setTestSlots(testSlots);
@@ -98,11 +101,11 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(5);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID, nodeId);
         proxy.setConfig(config);
-        List<TestSlot> testSlots = new ArrayList<TestSlot>();
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        List<TestSlot> testSlots = new ArrayList<>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,browser);
         testSlots.add(new TestSlot(proxy, SeleniumProtocol.WebDriver, null, capabilities));
         proxy.setTestSlots(testSlots);
@@ -117,7 +120,7 @@ public class AutomationRequestMatcherTest {
     // Tests that OS matching on a node works correctly
     public void testRequestMatchingOs() throws IOException, ServletException {
         String browser = "firefox";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
         AutomationDynamicNode node = new AutomationDynamicNode("testUuid",nodeId,null,null,new Date(),50);
@@ -126,10 +129,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         capabilities.put(CapabilityType.PLATFORM,os);
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
@@ -145,7 +148,7 @@ public class AutomationRequestMatcherTest {
     // Tests that OS NOT matching on a node works correctly
     public void testRequestNonMatchingOs() throws IOException, ServletException {
         String browser = "firefox";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
         AutomationDynamicNode node = new AutomationDynamicNode("testUuid",nodeId,null,null,new Date(),50);
@@ -154,12 +157,12 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
-        capabilities.put(CapabilityType.PLATFORM,"doesntMatch");
+        capabilities.put(CapabilityType.PLATFORM,Platform.WINDOWS);
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
         proxySet.add(proxy);
@@ -171,7 +174,7 @@ public class AutomationRequestMatcherTest {
 
     @Test
     // Happy path that browsers matching shows correct free node count
-     public void testRequestMatchingBrowsers() throws IOException, ServletException{
+    public void testRequestMatchingBrowsers() throws IOException, ServletException{
         String browser = "firefox";
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -181,10 +184,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,browser);
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -207,10 +210,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"doesntMatch");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -233,10 +236,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(10);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -259,10 +262,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(15);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -285,10 +288,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(5);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -313,10 +316,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy nonMatchingProxy = new MockRemoteProxy();
         nonMatchingProxy.setMaxNumberOfConcurrentTestSessions(50);
         nonMatchingProxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         nonMatchingProxy.setConfig(config);
-        Map<String,Object> nonMatchingCapabilities = new HashMap<String,Object>();
+        Map<String,Object> nonMatchingCapabilities = Maps.newHashMap();
         nonMatchingCapabilities.put(CapabilityType.BROWSER_NAME, nonMatchingBrowser);
         TestSlot nonMatchingTestSlot = new TestSlot(nonMatchingProxy, SeleniumProtocol.WebDriver,null,nonMatchingCapabilities);
         nonMatchingProxy.setMultipleTestSlots(nonMatchingTestSlot, 10);
@@ -329,7 +332,7 @@ public class AutomationRequestMatcherTest {
         matchingProxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         matchingProxy.setConfig(config);
-        Map<String,Object> matchingCapabilities = new HashMap<String,Object>();
+        Map<String,Object> matchingCapabilities = Maps.newHashMap();
         matchingCapabilities.put(CapabilityType.BROWSER_NAME, matchingBrowser);
         TestSlot matchingTestSlot = new TestSlot(nonMatchingProxy, SeleniumProtocol.WebDriver,null,matchingCapabilities);
         matchingProxy.setMultipleTestSlots(matchingTestSlot, 10);
@@ -353,10 +356,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID, nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -380,10 +383,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(15);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         // Associate the run UUID with the test slots to mimic a test run that is partially underway
         capabilities.put(AutomationConstants.UUID,runId);
@@ -391,7 +394,7 @@ public class AutomationRequestMatcherTest {
         // Assign a session to the test slot
         testSlot.getNewSession(capabilities);
         proxy.setMultipleTestSlots(testSlot,5);
-        Map<String,Object> capabilities2 = new HashMap<String,Object>();
+        Map<String,Object> capabilities2 = Maps.newHashMap();
         capabilities2.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot2 = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities2);
         proxy.setMultipleTestSlots(testSlot2, 10);
@@ -415,10 +418,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         // Associate the run UUID with the test slots to mimic a test run that is still in progress
         capabilities.put(AutomationConstants.UUID,runId);
@@ -426,7 +429,7 @@ public class AutomationRequestMatcherTest {
         // Assign a session to the test slot
         testSlot.getNewSession(capabilities);
         proxy.setMultipleTestSlots(testSlot, 5);
-        Map<String,Object> capabilities2 = new HashMap<String,Object>();
+        Map<String,Object> capabilities2 = Maps.newHashMap();
         capabilities2.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot2 = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities2);
         proxy.setMultipleTestSlots(testSlot2, 5);
@@ -451,10 +454,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> capabilities = new HashMap<String,Object>();
+        Map<String,Object> capabilities = Maps.newHashMap();
         capabilities.put(CapabilityType.BROWSER_NAME,"firefox");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,capabilities);
         proxy.setMultipleTestSlots(testSlot, 10);
@@ -476,17 +479,17 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(10);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> nonMatchingCapabilities = new HashMap<String,Object>();
+        Map<String,Object> nonMatchingCapabilities = Maps.newHashMap();
         nonMatchingCapabilities.put(CapabilityType.BROWSER_NAME, "chrome");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,nonMatchingCapabilities);
         testSlot.getNewSession(nonMatchingCapabilities);
         proxy.setMultipleTestSlots(testSlot, 5);
         proxySet.add(proxy);
 
-        Map<String,Object> matchingCapabilities = new HashMap<String,Object>();
+        Map<String,Object> matchingCapabilities = Maps.newHashMap();
         matchingCapabilities.put(CapabilityType.BROWSER_NAME, browser);
         TestSlot testSlot2 = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,matchingCapabilities);
         proxy.setMultipleTestSlots(testSlot2, 5);
@@ -510,17 +513,17 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(6);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
-        Map<String,Object> nonMatchingCapabilities = new HashMap<String,Object>();
+        Map<String,Object> nonMatchingCapabilities = Maps.newHashMap();
         nonMatchingCapabilities.put(CapabilityType.BROWSER_NAME, "chrome");
         TestSlot testSlot = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,nonMatchingCapabilities);
         testSlot.getNewSession(nonMatchingCapabilities);
         proxy.setMultipleTestSlots(testSlot, 6);
         proxySet.add(proxy);
 
-        Map<String,Object> matchingCapabilities = new HashMap<String,Object>();
+        Map<String,Object> matchingCapabilities = Maps.newHashMap();
         matchingCapabilities.put(CapabilityType.BROWSER_NAME, browser);
         TestSlot testSlot2 = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,matchingCapabilities);
         proxy.setMultipleTestSlots(testSlot2, 1);
@@ -529,10 +532,10 @@ public class AutomationRequestMatcherTest {
         MockRemoteProxy proxy2 = new MockRemoteProxy();
         proxy2.setMaxNumberOfConcurrentTestSessions(12);
         proxy2.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config2 = new HashMap<String, Object>();
+        Map<String,Object> config2 = Maps.newHashMap();
         config2.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy2.setConfig(config2);
-        Map<String,Object> nonMatchingCapabilities2 = new HashMap<String,Object>();
+        Map<String,Object> nonMatchingCapabilities2 = Maps.newHashMap();
         nonMatchingCapabilities2.put(CapabilityType.BROWSER_NAME, "chrome");
         TestSlot testSlot3 = new TestSlot(proxy, SeleniumProtocol.WebDriver,null,nonMatchingCapabilities2);
         testSlot2.getNewSession(nonMatchingCapabilities2);
@@ -542,7 +545,6 @@ public class AutomationRequestMatcherTest {
         proxy2.setMultipleTestSlots(testSlot4, 1);
 
         proxySet.add(proxy);
-
 
         proxySet.add(proxy2);
 

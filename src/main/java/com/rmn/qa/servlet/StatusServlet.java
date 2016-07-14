@@ -24,6 +24,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.grid.common.GridDocHelper;
 import org.openqa.grid.internal.Registry;
 import org.openqa.grid.internal.RemoteProxy;
@@ -133,6 +134,9 @@ public class StatusServlet extends RegistryBasedServlet {
                 AutomationDynamicNode node = AutomationContext.getContext().getNode((String)instanceId);
                 if(node != null) {
                     localBuilder.append("<br>EC2 dynamic node " + node.getInstanceId());
+                    if (!StringUtils.isEmpty(node.getInstanceType())) {
+                        localBuilder.append("<br>Instance Type " + node.getInstanceType());
+                    }
                     localBuilder.append("<br>Start time " + node.getStartDate());
                     localBuilder.append("<br>Current shutdown time ").append(node.getEndDate());
                     localBuilder.append("<br>Requested test run ").append(node.getUuid());

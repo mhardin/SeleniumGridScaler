@@ -12,14 +12,18 @@
 
 package com.rmn.qa.aws;
 
+import java.util.Properties;
+
+import org.openqa.selenium.Platform;
+
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
-
-import java.util.Properties;
 
 public class MockManageVm extends AwsVmManager {
 
     private String userData;
+    private AWSCredentials awsCredentials;
 
     public MockManageVm() {
         super();
@@ -35,7 +39,7 @@ public class MockManageVm extends AwsVmManager {
     }
 
     @Override
-    String getUserData(String uuid, String hubHostName, String browser, String os, int maxSessions) {
+    String getUserData(String uuid, String hubHostName, String browser, Platform platform, int maxSessions) {
         return userData;
     }
 
@@ -43,7 +47,11 @@ public class MockManageVm extends AwsVmManager {
         this.userData = userData;
     }
 
-    public void setCredentials(BasicAWSCredentials basicAWSCredentials) {
+    public void setCredentials(AWSCredentials basicAWSCredentials) {
         this.credentials = basicAWSCredentials;
+    }
+
+    public void setAwsCredentials(AWSCredentials awsCredentials) {
+        this.awsCredentials = awsCredentials;
     }
 }

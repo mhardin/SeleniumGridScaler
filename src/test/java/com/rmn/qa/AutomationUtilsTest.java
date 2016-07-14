@@ -12,13 +12,14 @@
 
 package com.rmn.qa;
 
-import junit.framework.Assert;
-import org.junit.Test;
-
 import java.util.Calendar;
 import java.util.Date;
 
-public class AutomationUtilsTest {
+import org.junit.Test;
+
+import junit.framework.Assert;
+
+public class AutomationUtilsTest extends BaseTest {
 
     @Test
     public void testDifferentCasedEquals() {

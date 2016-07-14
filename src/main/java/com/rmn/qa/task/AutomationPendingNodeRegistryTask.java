@@ -24,9 +24,10 @@ import com.rmn.qa.AutomationContext;
 import com.rmn.qa.AutomationDynamicNode;
 import com.rmn.qa.AutomationRunContext;
 import com.rmn.qa.RegistryRetriever;
+import com.rmn.qa.aws.VmManager;
 
 /**
- * Registry task which removes dynamic {@link AutomationDynamicNode nodes} from the internal tracking pending set as they come online
+ * Registry task which registers dynamic {@link AutomationDynamicNode nodes} as they come online
  *
  * @author mhardin
  */
@@ -35,14 +36,16 @@ public class AutomationPendingNodeRegistryTask extends AbstractAutomationCleanup
 	private static final Logger log = LoggerFactory.getLogger(AutomationPendingNodeRegistryTask.class);
 	@VisibleForTesting
 	static final String NAME = "Pending Node Registry Task";
+	private VmManager vmManager;
 
 	/**
 	 * Constructs a registry task with the specified context retrieval mechanism
 	 *
 	 * @param registryRetriever Represents the retrieval mechanism you wish to use
 	 */
-	public AutomationPendingNodeRegistryTask(RegistryRetriever registryRetriever) {
+	public AutomationPendingNodeRegistryTask(RegistryRetriever registryRetriever, VmManager vmManager) {
 		super(registryRetriever);
+		this.vmManager = vmManager;
 	}
 
 	/**
@@ -81,5 +84,7 @@ public class AutomationPendingNodeRegistryTask extends AbstractAutomationCleanup
 				}
 			}
 		}
+		// Remove any pending nodes that haven't come online after a configured amount of time
+		AutomationContext.getContext().removeExpiredPendingNodes(vmManager);
 	}
 }

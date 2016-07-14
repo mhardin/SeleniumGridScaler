@@ -17,6 +17,7 @@ import java.util.Map;
 
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.RemoteProxy;
+import org.openqa.selenium.Platform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,11 +26,12 @@ import com.rmn.qa.AutomationConstants;
 import com.rmn.qa.AutomationContext;
 import com.rmn.qa.AutomationDynamicNode;
 import com.rmn.qa.AutomationRunContext;
+import com.rmn.qa.AutomationUtils;
 import com.rmn.qa.RegistryRetriever;
 import com.rmn.qa.aws.AwsVmManager;
 
 /**
- * Registry task which registers unregistered dynamic {@link com.rmn.qa.AutomationDynamicNode nodes}.  This can happen if the hub process restarts for whatever reason
+ * Registry task which registers orphaned  dynamic {@link com.rmn.qa.AutomationDynamicNode nodes}.  This can happen if the hub process restarts for whatever reason
  * and loses track of previously registered nodes
  * @author mhardin
  */
@@ -86,7 +88,8 @@ public class AutomationOrphanedNodeRegistryTask extends AbstractAutomationCleanu
                         int threadCount = (Integer)config.get(AutomationConstants.CONFIG_MAX_SESSION);
                         String browser = (String)config.get(AutomationConstants.CONFIG_BROWSER);
                         String os = (String)config.get(AutomationConstants.CONFIG_OS);
-                        AutomationDynamicNode node = new AutomationDynamicNode(uuid,instanceId,browser,os,createdDate,threadCount);
+                        Platform platform = AutomationUtils.getPlatformFromObject(os);
+                        AutomationDynamicNode node = new AutomationDynamicNode(uuid, instanceId, browser, platform, createdDate, threadCount);
                         log.info("Unregistered dynamic node found: " + node);
                         context.addNode(node);
                     }
@@ -106,7 +109,7 @@ public class AutomationOrphanedNodeRegistryTask extends AbstractAutomationCleanu
         try{
             returnDate = AwsVmManager.NODE_DATE_FORMAT.parse(stringDate);
         } catch (ParseException pe) {
-            log.error(String.format("Error trying to parse created date [%s]", stringDate), pe);
+            log.error(String.format("Error trying to parse created date [%s]: %s", stringDate, pe));
         }
         return returnDate;
     }

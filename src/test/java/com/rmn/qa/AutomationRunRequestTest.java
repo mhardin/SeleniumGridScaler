@@ -12,19 +12,23 @@
 
 package com.rmn.qa;
 
-import junit.framework.Assert;
-import org.junit.Test;
-import org.openqa.selenium.remote.CapabilityType;
-
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Test;
+import org.openqa.selenium.Platform;
+import org.openqa.selenium.remote.CapabilityType;
+
+import com.google.common.collect.Maps;
+
+import junit.framework.Assert;
+
 /**
  * Created by mhardin on 4/24/14.
  */
-public class AutomationRunRequestTest {
+public class AutomationRunRequestTest extends BaseTest {
 
     @Test
     // Tests that two run request objects match each other
@@ -32,7 +36,7 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         Assert.assertTrue("Run requests should match",first.matchesCapabilities(second));
@@ -44,10 +48,10 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         AutomationRunRequest second = new AutomationRunRequest(uuid,null,"badBrowser",browserVersion,os);
-        Assert.assertFalse("Run requests should NOT match due to browser",first.matchesCapabilities(second));
+        Assert.assertFalse("Run requests should NOT match due to browser", first.matchesCapabilities(second));
     }
     @Test
     // Tests that two run request objects do match each other due to mismatching browser versions
@@ -55,7 +59,7 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,"12432",os);
         Assert.assertFalse("Run requests should NOT match due to browser version", first.matchesCapabilities(second));
@@ -66,9 +70,9 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
-        AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,browserVersion,"badOs");
+        AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,browserVersion,Platform.MAC);
         Assert.assertFalse("Run requests should NOT match due to browser",first.matchesCapabilities(second));
     }
 
@@ -78,10 +82,22 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = null;
-        String os = null;
+        Platform os = null;
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
-        AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,"20","linux");
-        Assert.assertTrue("Run requests should match",first.matchesCapabilities(second));
+        AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,"20",Platform.LINUX);
+        Assert.assertTrue("Run requests should match", first.matchesCapabilities(second));
+    }
+
+    @Test
+    // Tests that two run request objects do NOT match each other since the optional fields are on the first object
+    public void testDoesntMatchesOtherRunRequestNonOptionalParametersNull() {
+        String uuid = "testUuid";
+        String browser = "firefox";
+        String browserVersion = null;
+        Platform os = null;
+        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,"20",Platform.LINUX);
+        AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
+        Assert.assertFalse("Run requests should not match", first.matchesCapabilities(second));
     }
 
     @Test
@@ -90,8 +106,8 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = null;
-        String os = null;
-        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,"20","linux");
+        Platform os = Platform.WINDOWS;
+        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,"20",Platform.LINUX);
         AutomationRunRequest second = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         Assert.assertFalse("Run requests should match", first.matchesCapabilities(second));
     }
@@ -102,8 +118,8 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = Platform.LINUX;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,browserVersion);
         map.put(CapabilityType.PLATFORM,os);
@@ -117,8 +133,8 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = Platform.LINUX;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,browserVersion);
         map.put(CapabilityType.PLATFORM,os);
@@ -132,8 +148,8 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = Platform.LINUX;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,browserVersion);
         map.put(CapabilityType.PLATFORM,os);
@@ -147,12 +163,12 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "20";
-        String os = "linux";
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = Platform.LINUX;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,browserVersion);
         map.put(CapabilityType.PLATFORM,os);
-        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,"badOs");
+        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,Platform.WINDOWS);
         Assert.assertFalse("Capabilities should match", first.matchesCapabilities(map));
     }
 
@@ -162,11 +178,11 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = null;
-        String os = null;
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = null;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,"20");
-        map.put(CapabilityType.PLATFORM,"badOs");
+        map.put(CapabilityType.PLATFORM,Platform.MAC);
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         Assert.assertTrue("Capabilities should match",first.matchesCapabilities(map));
     }
@@ -177,11 +193,11 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "21";
-        String os = "linux";
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = Platform.LINUX;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,"20");
-        map.put(CapabilityType.PLATFORM,"badOs");
+        map.put(CapabilityType.PLATFORM,Platform.MAC);
         AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,os);
         Assert.assertFalse("Capabilities should NOT match",first.matchesCapabilities(map));
     }
@@ -192,8 +208,8 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "25";
-        String os = "linux";
-        Map<String,Object> map = new HashMap<String,Object>();
+        Platform os = Platform.LINUX;
+        Map<String,Object> map = Maps.newHashMap();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,browserVersion);
         map.put(CapabilityType.PLATFORM,os);
@@ -223,12 +239,12 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "25";
-        String os = "ANY";
+        Platform os = Platform.ANY;
         Map<String,Object> map = new HashMap<>();
         map.put(CapabilityType.BROWSER_NAME,browser);
         map.put(CapabilityType.VERSION,browserVersion);
-        map.put(CapabilityType.PLATFORM,os);
-        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,"linux");
+        map.put(CapabilityType.PLATFORM,os.toString());
+        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,Platform.LINUX);
         AutomationRunRequest second = AutomationRunRequest.requestFromCapabilities(map);
         Assert.assertTrue("Requests should be equal", first.matchesCapabilities(second));
         Assert.assertTrue("Requests should be equal", second.matchesCapabilities(first));
@@ -240,12 +256,12 @@ public class AutomationRunRequestTest {
         String uuid = "testUuid";
         String browser = "firefox";
         String browserVersion = "25";
-        String os = "ANY";
+        Platform os = Platform.ANY;
         Map<String,Object> capabilities = new HashMap<>();
         capabilities.put(CapabilityType.BROWSER_NAME, browser);
         capabilities.put(CapabilityType.VERSION, browserVersion);
-        capabilities.put(CapabilityType.PLATFORM, os);
-        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,"linux");
+        capabilities.put(CapabilityType.PLATFORM, os.toString());
+        AutomationRunRequest first = new AutomationRunRequest(uuid,null,browser,browserVersion,Platform.LINUX);
         Assert.assertTrue("Requests should be equal", first.matchesCapabilities(capabilities));
     }
 }

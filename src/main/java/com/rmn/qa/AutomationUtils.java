@@ -22,6 +22,13 @@ import java.util.Date;
 import com.rmn.qa.aws.AwsTagReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.Platform;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.remote.BrowserType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Util methods
  * @author mhardin
@@ -55,7 +62,7 @@ public final class AutomationUtils {
      * @return
      */
     public static boolean isCurrentTimeAfterDate(Date dateToCheck,int unitsToCheckWith,int unitType) {
-        Date targetDate = AutomationUtils.modifyDate(dateToCheck,unitsToCheckWith,unitType);
+        Date targetDate = AutomationUtils.modifyDate(dateToCheck, unitsToCheckWith, unitType);
         return new Date().after(targetDate);
     }
 
@@ -118,4 +125,113 @@ public final class AutomationUtils {
         return line;
     }
 
+     /* Returns the Selenium platform object from an unknown object, which could be a string or an actual object.
+     * If the platform can not be determined, null will be returned
+     * @param platformObj
+     * @return
+     */
+    public static Platform getPlatformFromObject(Object platformObj) {
+        if (platformObj == null) {
+            return null;
+        }
+        Platform parsedPlatform = null;
+        if (platformObj instanceof Platform) {
+            parsedPlatform = ((Platform) platformObj);
+        } else if (platformObj instanceof String) {
+            String platformString = (String) platformObj;
+            if (StringUtils.isEmpty(platformString)) {
+                return null;
+            }
+            try {
+                parsedPlatform = Platform.fromString(platformString);
+            } catch (WebDriverException e) {
+                log.error("Error parsing out platform for string: " + platformObj, e);
+            }
+        } else {
+            // Do nothing and return null for unexpected type
+            log.warn("Platform was not an expected type: " + platformObj);
+        }
+        return parsedPlatform;
+    }
+
+    /**
+     * Returns true if the requested browser and platform can be used within AMIs, and false otherwise
+     * @param browserPair
+     * @return
+     */
+    public static boolean browserAndPlatformSupported(BrowserPlatformPair browserPair) {
+        // If no platform is defined or the user specifies linux, perform the browser check.
+        if(AutomationUtils.isPlatformUnix(browserPair.getPlatform())){
+            return     lowerCaseMatch(BrowserType.CHROME,browserPair.getBrowser())
+                    || lowerCaseMatch(BrowserType.FIREFOX,browserPair.getBrowser());
+        } else if (browserPair.getPlatform() == Platform.ANY || AutomationUtils.isPlatformWindows(browserPair.getPlatform())) {
+            return lowerCaseMatch(BrowserType.CHROME, browserPair.getBrowser())
+                    || lowerCaseMatch(BrowserType.FIREFOX, browserPair.getBrowser())
+                    || lowerCaseMatch("internetexplorer", browserPair.getBrowser());
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the platform is from the Windows family
+     * @param platform
+     * @return
+     */
+    public static boolean isPlatformWindows(Platform platform) {
+        return getUnderlyingFamily(platform) == Platform.WINDOWS;
+    }
+
+    /**
+     * Returns true if the platform is from the Unix family
+     * @param platform
+     * @return
+     */
+    public static boolean isPlatformUnix(Platform platform) {
+        return getUnderlyingFamily(platform) == Platform.UNIX;
+    }
+
+    /**
+     * Returns true if the platforms match.  If either platform is Platform.ANY, this will return true.
+     * @param platformOne
+     * @param platformTwo
+     * @return
+     */
+    // Even though we're handling null in here, this shouldn't really happen unless someone has a mis-configured test request or
+    // manually connects a node to this hub with a mis-configured JSON file.  Unfortunately, there is not a lot we can do to prevent
+    // this besides handling it here
+    public static boolean firstPlatformCanBeFulfilledBySecondPlatform(Platform platformOne, Platform platformTwo) {
+        // If either platform is ANY, this means this request should match
+        if (platformOne == Platform.ANY || platformTwo == Platform.ANY) {
+            return true;
+        } else if (platformOne != null && platformTwo == null) {
+            // If the first platform is requesting a specific platform, and the 2nd platform is null,
+            // return false for a match as we can't determine if they do in fact match
+            return false;
+        } else if (platformOne == null) {
+            return true;
+        } else {
+            // At the end of the day, we only support basic platforms (Windows or Linux), so group
+            // each platform into the family and compare
+            Platform platformOneFamily = getUnderlyingFamily(platformOne);
+            Platform platformTwoFamily = getUnderlyingFamily(platformTwo);
+            return platformOneFamily == platformTwoFamily;
+        }
+    }
+
+    /**
+     * Returns the underlying 'family' of the specified platform
+     * @param platform
+     * @return
+     */
+    public static Platform getUnderlyingFamily(Platform platform) {
+        if (platform == null) {
+            return null;
+        }
+        if (platform == Platform.UNIX || platform == Platform.WINDOWS || platform == Platform.MAC || platform == Platform.ANY) {
+            return platform;
+        } else {
+            return getUnderlyingFamily(platform.family());
+        }
+    }
 }

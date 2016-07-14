@@ -11,19 +11,21 @@
  */
 package com.rmn.qa.aws;
 
+import java.util.List;
+
+import org.openqa.selenium.Platform;
+
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.rmn.qa.NodesCouldNotBeStartedException;
-
-import java.util.List;
 
 public interface VmManager {
 
     /**
      * Launches the specified instances
      * @param uuid UUID of the requesting test run
-     * @param os OS of the requesting test run
+     * @param platform Platform of the requesting test run
      * @param browser Browser of the requesting test run
      * @param hubHostName Hub host name for the nodes to register with
      * @param nodeCount Number of nodes to be started
@@ -31,7 +33,7 @@ public interface VmManager {
      * @return
      */
     // TODO Refactor into AutomationRunRequest
-    List<Instance> launchNodes(String uuid, String os, String browser, String hubHostName, int nodeCount, int maxSessions) throws NodesCouldNotBeStartedException;
+    List<Instance> launchNodes(String uuid, Platform platform, String browser, String hubHostName, int nodeCount, int maxSessions) throws NodesCouldNotBeStartedException;
 
     /**
      * Terminates the specified instance

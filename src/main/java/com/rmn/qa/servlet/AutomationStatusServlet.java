@@ -11,19 +11,27 @@
  */
 package com.rmn.qa.servlet;
 
-import com.google.common.io.ByteStreams;
-import com.rmn.qa.*;
-import org.openqa.grid.internal.Registry;
-import org.openqa.grid.web.servlet.RegistryBasedServlet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+
+import org.openqa.grid.internal.Registry;
+import org.openqa.grid.web.servlet.RegistryBasedServlet;
+import org.openqa.selenium.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.io.ByteStreams;
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationRequestMatcher;
+import com.rmn.qa.AutomationRunContext;
+import com.rmn.qa.AutomationRunRequest;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.RequestMatcher;
 
 /**
  * Legacy API to pull free threads for a given browser
@@ -60,13 +68,14 @@ public class AutomationStatusServlet extends RegistryBasedServlet {
 
         String browserRequested = request.getParameter("browser");
 
-        // OS is optional
-        String os = request.getParameter("os");
         if (browserRequested == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parameter 'browser' must be passed in as a query string parameter");
             return;
         }
-        AutomationRunRequest runRequest = new AutomationRunRequest(AutomationStatusServlet.class.getSimpleName(),null,browserRequested,null,os);
+        // OS is optional
+        String os = request.getParameter("os");
+        Platform platformRequested = AutomationUtils.getPlatformFromObject(os);
+        AutomationRunRequest runRequest = new AutomationRunRequest(AutomationStatusServlet.class.getSimpleName(),null,browserRequested,null,platformRequested);
         log.info(String.format("Legacy server request received.  Browser [%s]", browserRequested));
         AutomationRunContext context = AutomationContext.getContext();
         // If a run is already going on with this browser, return an error code
@@ -78,7 +87,7 @@ public class AutomationStatusServlet extends RegistryBasedServlet {
         int availableNodes = requestMatcher.getNumFreeThreadsForParameters(getRegistry().getAllProxies(),runRequest);
         response.setStatus(HttpServletResponse.SC_OK);
         // Add the browser so we know the nodes are occupied
-        context.addRun(new AutomationRunRequest(browserRequested,availableNodes,browserRequested,null,os));
+        context.addRun(new AutomationRunRequest(browserRequested,availableNodes,browserRequested,null,platformRequested));
         try (InputStream in = new ByteArrayInputStream(String.valueOf(availableNodes).getBytes("UTF-8"))){
             ByteStreams.copy(in, response.getOutputStream());
         } finally {

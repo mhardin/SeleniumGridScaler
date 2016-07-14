@@ -12,14 +12,17 @@
 
 package com.rmn.qa.task;
 
-import com.rmn.qa.RequestMatcher;
-import com.rmn.qa.RegistryRetriever;
-import com.rmn.qa.aws.VmManager;
 import org.openqa.grid.internal.ProxySet;
+import org.openqa.grid.internal.RemoteProxy;
+
+import com.rmn.qa.RegistryRetriever;
+import com.rmn.qa.RequestMatcher;
+import com.rmn.qa.aws.VmManager;
 
 public class MockAutomationNodeCleanupTask extends AutomationNodeCleanupTask {
 
     private ProxySet proxySet;
+    private boolean proxyRemoved = false;
 
     public MockAutomationNodeCleanupTask(RegistryRetriever retrieveContext, VmManager ec2, RequestMatcher requestMatcher) {
         super(retrieveContext, ec2, requestMatcher);
@@ -32,5 +35,14 @@ public class MockAutomationNodeCleanupTask extends AutomationNodeCleanupTask {
 
     public void setProxySet(ProxySet proxySet) {
         this.proxySet = proxySet;
+    }
+
+    @Override
+    protected void removeProxy(RemoteProxy proxy) {
+        proxyRemoved = true;
+    }
+
+    public boolean isProxyRemoved() {
+        return proxyRemoved;
     }
 }

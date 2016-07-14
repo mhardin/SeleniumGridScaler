@@ -12,20 +12,23 @@
 
 package com.rmn.qa;
 
-import com.google.common.collect.ImmutableMap;
-import junit.framework.Assert;
-import org.junit.After;
-import org.junit.Test;
-import org.openqa.selenium.remote.CapabilityType;
-
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.After;
+import org.junit.Test;
+import org.openqa.selenium.Platform;
+import org.openqa.selenium.remote.CapabilityType;
+
+import com.google.common.collect.ImmutableMap;
+
+import junit.framework.Assert;
+
 /**
  * Created by mhardin on 4/25/14.
  */
-public class AutomationCapabilityMatcherTest {
+public class AutomationCapabilityMatcherTest extends BaseTest {
 
     @Test
     public void testMatches() {
@@ -42,10 +45,10 @@ public class AutomationCapabilityMatcherTest {
         AutomationCapabilityMatcher matcher = new AutomationCapabilityMatcher();
         Map<String,Object> nodeCapability = new HashMap<String,Object>();
         nodeCapability.put(CapabilityType.BROWSER_NAME,"firefox");
-        nodeCapability.put(AutomationConstants.INSTANCE_ID,"foo");
+        nodeCapability.put(AutomationConstants.INSTANCE_ID,"foobar");
         Map<String,Object> testCapability = new HashMap<String,Object>();
         testCapability.put(CapabilityType.BROWSER_NAME,"firefox");
-        AutomationDynamicNode node = new AutomationDynamicNode("uuid","id","browser","os", new Date(),10);
+        AutomationDynamicNode node = new AutomationDynamicNode("uuid","foo","browser", Platform.LINUX, new Date(),10);
         node.updateStatus(AutomationDynamicNode.STATUS.EXPIRED);
         Assert.assertTrue("Capabilities should match as node is not in context",matcher.matches(nodeCapability,testCapability));
     }
@@ -58,7 +61,7 @@ public class AutomationCapabilityMatcherTest {
         nodeCapability.put(AutomationConstants.INSTANCE_ID,"foo");
         Map<String,Object> testCapability = new HashMap<String,Object>();
         testCapability.put(CapabilityType.BROWSER_NAME,"firefox");
-        AutomationDynamicNode node = new AutomationDynamicNode("uuid","foo","browser","os", new Date(),10);
+        AutomationDynamicNode node = new AutomationDynamicNode("uuid","foo","browser",Platform.LINUX, new Date(),10);
         AutomationContext.getContext().addNode(node);
         node.updateStatus(AutomationDynamicNode.STATUS.EXPIRED);
         Assert.assertFalse("Capabilities should match as node is not in context", matcher.matches(nodeCapability, testCapability));
@@ -72,7 +75,7 @@ public class AutomationCapabilityMatcherTest {
         nodeCapability.put(AutomationConstants.INSTANCE_ID,"foo");
         Map<String,Object> testCapability = new HashMap<String,Object>();
         testCapability.put(CapabilityType.BROWSER_NAME,"firefox");
-        AutomationDynamicNode node = new AutomationDynamicNode("uuid","foo","browser","os", new Date(),10);
+        AutomationDynamicNode node = new AutomationDynamicNode("uuid","foo","browser",Platform.LINUX, new Date(),10);
         AutomationContext.getContext().addNode(node);
         node.updateStatus(AutomationDynamicNode.STATUS.TERMINATED);
         Assert.assertFalse("Capabilities should match as node is not in context",matcher.matches(nodeCapability,testCapability));

@@ -19,8 +19,11 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.CapabilityType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.rmn.qa.task.AbstractAutomationCleanupTask;
 
 /**
  * Represents a run request which will typically be sent in by a test run requesting resources.  Used
@@ -29,11 +32,13 @@ import com.google.common.annotations.VisibleForTesting;
  */
 public final class AutomationRunRequest {
 
+    private static final Logger log = LoggerFactory.getLogger(AbstractAutomationCleanupTask.class);
+
     private final String uuid;
     private final Integer threadCount;
     private final String browser;
     private final String browserVersion;
-    private final String os;
+    private final Platform platform;
     private final Date createdDate;
 
     // Require callers to have required variables through constructor below
@@ -65,10 +70,10 @@ public final class AutomationRunRequest {
      * @param threadCount Number of threads for the requesting test run
      * @param browser Browser for the requesting test run
      * @param browserVersion Browser version for the requesting test run
-     * @param os OS for the requesting test run
+     * @param platform Platform for the requesting test run
      */
-    public AutomationRunRequest(String runUuid, Integer threadCount, String browser, String browserVersion, String os) {
-        this(runUuid, threadCount, browser, browserVersion, os, new Date());
+    public AutomationRunRequest(String runUuid, Integer threadCount, String browser, String browserVersion, Platform platform) {
+        this(runUuid, threadCount, browser, browserVersion, platform, new Date());
     }
 
     /**
@@ -77,16 +82,16 @@ public final class AutomationRunRequest {
      * @param threadCount Number of threads for the requesting test run
      * @param browser Browser for the requesting test run
      * @param browserVersion Browser version for the requesting test run
-     * @param os OS for the requesting test run
+     * @param platform Platform for the requesting test run
      * @param createdDate Date that the test run request was received
      */
     @VisibleForTesting
-    public AutomationRunRequest(String runUuid, Integer threadCount, String browser,String browserVersion, String os, Date createdDate) {
+    public AutomationRunRequest(String runUuid, Integer threadCount, String browser,String browserVersion, Platform platform, Date createdDate) {
         this.uuid = runUuid;
         this.threadCount = threadCount;
         this.browser = browser;
         this.browserVersion = browserVersion;
-        this.os = os;
+        this.platform = platform;
         this.createdDate = createdDate;
     }
 
@@ -102,14 +107,8 @@ public final class AutomationRunRequest {
             capabilityBrowserVersion = (String)capabilities.get(CapabilityType.VERSION);
         }
         Object platform = capabilities.get(CapabilityType.PLATFORM);
-        String capabilityOs;
-        if (platform instanceof Platform) {
-            capabilityOs = ((Platform) platform).getPartOfOsName()[0];
-        } else {
-            capabilityOs = (String)platform;
-        }
-
-        return new AutomationRunRequest(null,null,capabilityBrowser,capabilityBrowserVersion,capabilityOs);
+        Platform capabilityPlatform = AutomationUtils.getPlatformFromObject(platform);
+        return new AutomationRunRequest(null,null,capabilityBrowser,capabilityBrowserVersion,capabilityPlatform);
     }
 
     /**
@@ -143,10 +142,10 @@ public final class AutomationRunRequest {
     public String getBrowserVersion() { return browserVersion; }
 
     /**
-     * Returns the OS (e.g. 'linux')
+     * Returns the Platform (e.g. 'Platform.WINDOWS')
      * @return
      */
-    public String getOs() { return os; }
+    public Platform getPlatform() { return platform; }
     /**
      * Returns the created date for this run request
      * @return
@@ -179,8 +178,8 @@ public final class AutomationRunRequest {
         if(!StringUtils.isEmpty(browser)) {
             builder.append(" - Browser: ").append(browser);
         }
-        if(!StringUtils.isEmpty(os)) {
-            builder.append(" - OS: ").append(os);
+        if(platform != null) {
+            builder.append(" - Platform: ").append(platform);
         }
         return builder.toString();
     }
@@ -193,24 +192,16 @@ public final class AutomationRunRequest {
     public boolean matchesCapabilities(Map<String,Object> capabilities) {
         String capabilityBrowser = (String)capabilities.get(CapabilityType.BROWSER_NAME);
         String capabilityBrowserVersion = (String)capabilities.get(CapabilityType.VERSION);
-        Object platform = capabilities.get(CapabilityType.PLATFORM);
-        String capabilityOs;
-        if (platform instanceof Platform) {
-            capabilityOs = ((Platform) platform).getPartOfOsName()[0];
-        } else {
-            capabilityOs = (String)platform;
-        }
+        Object capabilityPlatformObject = capabilities.get(CapabilityType.PLATFORM);
+        Platform capabilityPlatform = AutomationUtils.getPlatformFromObject(capabilityPlatformObject);
         if(!AutomationUtils.lowerCaseMatch(browser, capabilityBrowser)) {
             return false;
         }
         if(browserVersion != null && !AutomationUtils.lowerCaseMatch(browserVersion,capabilityBrowserVersion))  {
             return false;
         }
-        if(os != null && !AutomationUtils.lowerCaseMatch(os, capabilityOs)) {
-            // If either OS has 'ANY' for the platform, that means it should be a match regardless and we don't have to count this as a non-match
-            if(!AutomationUtils.lowerCaseMatch(os,"any") && !AutomationUtils.lowerCaseMatch(capabilityOs,"any")) {
-                return false;
-            }
+        if(platform != null && !AutomationUtils.firstPlatformCanBeFulfilledBySecondPlatform(platform, capabilityPlatform)) {
+            return false;
         }
         return true;
     }
@@ -227,11 +218,8 @@ public final class AutomationRunRequest {
         if(browserVersion != null && browserVersion != otherRequest.getBrowserVersion()) {
             return false;
         }
-        if(os != null && !AutomationUtils.lowerCaseMatch(os, otherRequest.getOs())) {
-            // If either OS has 'ANY' for the platform, that means it should be a match regardless and we don't have to count this as a non-match
-            if(!AutomationUtils.lowerCaseMatch(os,"any") && !AutomationUtils.lowerCaseMatch(otherRequest.getOs(),"any")) {
-                return false;
-            }
+        if(platform != null && !AutomationUtils.firstPlatformCanBeFulfilledBySecondPlatform(platform, otherRequest.getPlatform())) {
+            return false;
         }
         return true;
     }
@@ -246,7 +234,7 @@ public final class AutomationRunRequest {
         if (!browser.equals(that.browser)) return false;
         if (browserVersion != null ? !browserVersion.equals(that.browserVersion) : that.browserVersion != null)
             return false;
-        if (os != null ? !os.equals(that.os) : that.os != null) return false;
+        if (platform != null ? !platform.equals(that.platform) : that.platform != null) return false;
 
         return true;
     }
@@ -255,7 +243,7 @@ public final class AutomationRunRequest {
     public int hashCode() {
         int result = browser.hashCode();
         result = 31 * result + (browserVersion != null ? browserVersion.hashCode() : 0);
-        result = 31 * result + (os != null ? os.hashCode() : 0);
+        result = 31 * result + (platform != null ? platform.hashCode() : 0);
         return result;
     }
 }

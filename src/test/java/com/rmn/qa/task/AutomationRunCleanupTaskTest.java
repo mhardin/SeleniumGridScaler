@@ -12,23 +12,31 @@
 
 package com.rmn.qa.task;
 
-import com.rmn.qa.*;
-import junit.framework.Assert;
-import org.junit.Test;
-import org.openqa.grid.internal.ProxySet;
-
 import java.util.Calendar;
 import java.util.Date;
+
+import org.junit.Test;
+import org.openqa.grid.internal.ProxySet;
+import org.openqa.selenium.Platform;
+
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationRunContext;
+import com.rmn.qa.AutomationRunRequest;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.BaseTest;
+import com.rmn.qa.MockRemoteProxy;
+
+import junit.framework.Assert;
 
 /**
  * Created by mhardin on 5/1/14.
  */
-public class AutomationRunCleanupTaskTest {
+public class AutomationRunCleanupTaskTest extends BaseTest {
 
     @Test
     // Tests that an old run not in progress is no longer registered
     public void testCleanup() {
-        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"firefox","10","linux", AutomationUtils.modifyDate(new Date(), -1, Calendar.HOUR));
+        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"firefox","10", Platform.LINUX, AutomationUtils.modifyDate(new Date(), -1, Calendar.HOUR));
         AutomationRunContext context = AutomationContext.getContext();
         context.addRun(oldRequest);
 

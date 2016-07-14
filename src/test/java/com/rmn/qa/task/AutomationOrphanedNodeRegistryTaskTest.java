@@ -18,14 +18,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Test;
 import org.openqa.grid.internal.ProxySet;
+import org.openqa.selenium.Platform;
 
 import com.rmn.qa.AutomationCapabilityMatcher;
 import com.rmn.qa.AutomationConstants;
 import com.rmn.qa.AutomationContext;
 import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.BaseTest;
 import com.rmn.qa.MockRemoteProxy;
 import com.rmn.qa.aws.AwsVmManager;
 
@@ -34,12 +35,7 @@ import junit.framework.Assert;
 /**
  * Created by mhardin on 4/24/14.
  */
-public class AutomationOrphanedNodeRegistryTaskTest {
-
-    @After
-    public void tearDown() {
-        AutomationContext.refreshContext();
-    }
+public class AutomationOrphanedNodeRegistryTaskTest extends BaseTest {
 
     @Test
     // Tests that the hardcoded name of the task is correct
@@ -55,17 +51,17 @@ public class AutomationOrphanedNodeRegistryTaskTest {
         ProxySet proxySet = new ProxySet(false);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = new HashMap<>();
         String instanceId = "instanceId";
         String uuid="testUuid";
         int threadCount = 10;
         String browser = "firefox";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         config.put(AutomationConstants.INSTANCE_ID,instanceId);
         config.put(AutomationConstants.UUID,uuid);
         config.put(AutomationConstants.CONFIG_MAX_SESSION, threadCount);
         config.put(AutomationConstants.CONFIG_BROWSER, browser);
-        config.put(AutomationConstants.CONFIG_OS, os);
+        config.put(AutomationConstants.CONFIG_OS, os.toString());
         config.put(AutomationConstants.CONFIG_CREATED_DATE, AwsVmManager.NODE_DATE_FORMAT.format(new Date()));
         proxy.setConfig(config);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
@@ -77,7 +73,7 @@ public class AutomationOrphanedNodeRegistryTaskTest {
         Assert.assertEquals("UUID should match", uuid,existingNode.getUuid());
         Assert.assertEquals("Browser should match", browser,existingNode.getBrowser());
         Assert.assertEquals("Thread count should match", threadCount,existingNode.getNodeCapacity());
-        Assert.assertEquals("OS should match", os, existingNode.getOs());
+        Assert.assertEquals("OS should match", os, existingNode.getPlatform());
     }
 
     @Test
@@ -87,12 +83,12 @@ public class AutomationOrphanedNodeRegistryTaskTest {
         ProxySet proxySet = new ProxySet(false);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = new HashMap<>();
         String instanceId = "instanceId";
         String uuid="testUuid";
         int threadCount = 10;
         String browser = "firefox";
-        String os = "linux";
+        Platform os = Platform.LINUX;
         config.put(AutomationConstants.INSTANCE_ID,instanceId);
         config.put(AutomationConstants.UUID,"fake");
         config.put(AutomationConstants.CONFIG_MAX_SESSION, 1);
@@ -111,7 +107,7 @@ public class AutomationOrphanedNodeRegistryTaskTest {
         Assert.assertEquals("UUID should match the previously existing node", uuid, newNode.getUuid());
         Assert.assertEquals("Browser should match the previously existing node", browser,newNode.getBrowser());
         Assert.assertEquals("Thread count should match the previously existing node", threadCount, newNode.getNodeCapacity());
-        Assert.assertEquals("OS should match the previously existing node", os, newNode.getOs());
+        Assert.assertEquals("OS should match the previously existing node", os, newNode.getPlatform());
     }
 
     @Test
@@ -121,7 +117,7 @@ public class AutomationOrphanedNodeRegistryTaskTest {
         ProxySet proxySet = new ProxySet(false);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = new HashMap<>();
         String uuid="testUuid";
         int threadCount = 10;
         String browser = "firefox";

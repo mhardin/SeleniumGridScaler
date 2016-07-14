@@ -108,22 +108,27 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
                         log.info(String.format("Updating node %s to 'EXPIRED' status.  Start date [%s] End date [%s]",instanceId,node.getStartDate(),node.getEndDate()));
                         node.updateStatus(AutomationDynamicNode.STATUS.EXPIRED);
                     }
-                } else if(nodeStatus == AutomationDynamicNode.STATUS.EXPIRED) {
+                } else if (nodeStatus == AutomationDynamicNode.STATUS.EXPIRED) {
                     // See if we're in the next billing cycle (create + 55 + 6, which should equal 61 minutes and would safely be in the next billing cycle)
-                    if(AutomationUtils.isCurrentTimeAfterDate(node.getEndDate(), 6,Calendar.MINUTE)) {
+                    if (AutomationUtils.isCurrentTimeAfterDate(node.getEndDate(), 6, Calendar.MINUTE)) {
                         node.incrementEndDateByOneHour();
-                        log.info(String.format("Node [%s] was still running after initial allotted time.  Resetting status and increasing end date to %s.",instanceId, node.getEndDate()));
+                        log.info(String.format("Node [%s] was still running after initial allotted time.  Resetting status and increasing end date to %s.", instanceId, node.getEndDate()));
                         node.updateStatus(AutomationDynamicNode.STATUS.RUNNING);
-                    } else if(isNodeCurrentlyEmpty(instanceId)) {
+                    } else if (isNodeCurrentlyEmpty(instanceId)) {
                         log.info(String.format("Terminating node %s and updating status to 'TERMINATED'", instanceId));
-                        // Terminate the instance inside AWS
+                        // Delete node
                         ec2.terminateInstance(instanceId);
                         // Also remove the node from Selenium's tracking set as there have been cases where the node sticks around
                         // and slows down the console as the node can on longer be pinged
                         removeFromProxy(getProxySet(), instanceId);
-                        iterator.remove();
-                        log.info(String.format("Removed node [%s] from internal tracking set", instanceId));
                         node.updateStatus(AutomationDynamicNode.STATUS.TERMINATED);
+                    }
+                } else if (nodeStatus == AutomationDynamicNode.STATUS.TERMINATED) {
+                    // If the current time is more than 30 minutes after the node end date, we should remove it from being tracked
+                    if (System.currentTimeMillis() > node.getEndDate().getTime() + (30 * 60 * 1000)) {
+                        // Remove it, and this will remove from tracking since we're referencing the collection
+                        log.info(String.format("Removing node [%s] from internal tracking set", instanceId));
+                        iterator.remove();
                     }
                 }
             }
@@ -219,7 +224,7 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
                     log.info(String.format("Tests are not in progress. Node: %s Request: %s Free Slots: %s Node Slots: %s",node.getInstanceId(),request,freeSlotsForBrowser,finalNum));
                 }
             } else {
-                log.info(String.format("Load suitable for Request [%s].  Free slots [%s] Node slots [%s]",request,freeSlotsForBrowser,finalNum));
+                log.info(String.format("Load suitable for node shutdown. Request [%s]. Node [%s] Free slots [%s] Node slots [%s]",request, node, freeSlotsForBrowser,finalNum));
             }
         }
         // If we iterated over every browser for the node and load was not heavy enough, we can safely shut this node down

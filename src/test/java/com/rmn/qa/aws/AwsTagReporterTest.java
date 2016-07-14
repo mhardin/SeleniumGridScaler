@@ -12,17 +12,20 @@
 
 package com.rmn.qa.aws;
 
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.Reservation;
-import junit.framework.Assert;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Properties;
 
-public class AwsTagReporterTest {
+import org.junit.Test;
+
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
+import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Reservation;
+import com.rmn.qa.BaseTest;
+
+import junit.framework.Assert;
+
+public class AwsTagReporterTest extends BaseTest {
 
     @Test
          public void testTagsAssociated() {

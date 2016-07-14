@@ -12,26 +12,37 @@
 
 package com.rmn.qa.servlet;
 
-import com.rmn.qa.*;
-import junit.framework.Assert;
-import org.junit.After;
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
 import org.junit.Test;
 import org.openqa.grid.common.SeleniumProtocol;
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.TestSlot;
+import org.openqa.selenium.Platform;
+import org.openqa.selenium.remote.BrowserType;
 import org.openqa.selenium.remote.CapabilityType;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.*;
+import com.rmn.qa.AutomationCapabilityMatcher;
+import com.rmn.qa.AutomationConstants;
+import com.rmn.qa.AutomationContext;
+import com.rmn.qa.AutomationDynamicNode;
+import com.rmn.qa.AutomationRunRequest;
+import com.rmn.qa.BaseTest;
+import com.rmn.qa.MockHttpServletRequest;
+import com.rmn.qa.MockHttpServletResponse;
+import com.rmn.qa.MockRemoteProxy;
+import com.rmn.qa.MockRequestMatcher;
+import com.rmn.qa.MockVmManager;
 
-public class AutomationTestRunServletTest {
+import junit.framework.Assert;
 
-    @After
-    public void cleanUp() {
-        AutomationContext.refreshContext();
-    }
+public class AutomationTestRunServletTest extends BaseTest {
 
     @Test
     // Makes sure that the query string parameter 'uuid' is required
@@ -86,6 +97,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","firefox");
+        request.setParameter("os", Platform.ANY.toString());
         request.setParameter("threadCount", "50");
         AutomationContext.getContext().addRun(new AutomationRunRequest("runUUid",50,"firefox"));
         AutomationContext.getContext().setTotalNodeCount(50);
@@ -105,6 +117,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","firefox");
+        request.setParameter("os", Platform.ANY.toString());
         request.setParameter("threadCount","50");
         AutomationContext.getContext().addRun(new AutomationRunRequest("runUUid",25,"firefox"));
         AutomationContext.getContext().addRun(new AutomationRunRequest("runUUid",25,"firefox"));
@@ -128,6 +141,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","firefox");
+        request.setParameter("os", Platform.ANY.toString());
         request.setParameter("threadCount","10");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -164,6 +178,7 @@ public class AutomationTestRunServletTest {
         String uuid = "testUUid";
         request.setParameter("uuid",uuid);
         request.setParameter("browser","firefox");
+        request.setParameter("os", Platform.ANY.toString());
         request.setParameter("threadCount","10");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -202,6 +217,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","firefox");
+        request.setParameter("os", Platform.ANY.toString());
         request.setParameter("threadCount","6");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -237,6 +253,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","chrome");
+        request.setParameter("os", Platform.LINUX.toString());
         request.setParameter("threadCount","7");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -273,6 +290,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","internetexplorer");
+        request.setParameter("os", Platform.WINDOWS.toString());
         request.setParameter("threadCount","1");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -307,7 +325,8 @@ public class AutomationTestRunServletTest {
         MockAutomationTestRunServlet servlet = new MockAutomationTestRunServlet(null,false, manageEc2,matcher);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
-        request.setParameter("browser","unknown");
+        request.setParameter("browser", BrowserType.SAFARI.toString());
+        request.setParameter("os", Platform.WINDOWS.toString());
         request.setParameter("threadCount","7");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation
@@ -344,6 +363,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","chrome");
+        request.setParameter("os", Platform.WINDOWS.toString());
         request.setParameter("threadCount","7");
         request.setParameter("browserVersion","21");
         String nodeId = "nodeId";
@@ -379,6 +399,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","chrome");
+        request.setParameter("os", Platform.WINDOWS.toString());
         request.setParameter("threadCount","7");
         request.setParameter("browserVersion","21");
         String nodeId = "nodeId";
@@ -416,6 +437,7 @@ public class AutomationTestRunServletTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("uuid","testUuid");
         request.setParameter("browser","firefox");
+        request.setParameter("os", Platform.WINDOWS.toString());
         request.setParameter("threadCount","10");
         String nodeId = "nodeId";
         // Add a node that is not running to make sure its not included in the available calculation

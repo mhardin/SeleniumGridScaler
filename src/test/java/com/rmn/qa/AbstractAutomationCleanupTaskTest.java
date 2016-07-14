@@ -12,14 +12,16 @@
 
 package com.rmn.qa;
 
-import com.rmn.qa.task.AbstractAutomationCleanupTask;
-import junit.framework.Assert;
 import org.junit.Test;
+
+import com.rmn.qa.task.AbstractAutomationCleanupTask;
+
+import junit.framework.Assert;
 
 /**
  * Created by mhardin on 4/25/14.
  */
-public class AbstractAutomationCleanupTaskTest {
+public class AbstractAutomationCleanupTaskTest extends BaseTest {
 
     @Test
     public void testExceptionHandled() {

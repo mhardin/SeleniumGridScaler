@@ -12,19 +12,22 @@
 
 package com.rmn.qa.task;
 
-import com.rmn.qa.AutomationUtils;
-import com.rmn.qa.MockVmManager;
-import com.rmn.qa.MockRemoteProxy;
-import com.rmn.qa.aws.AwsVmManager;
-import junit.framework.Assert;
+import java.util.Calendar;
+import java.util.Date;
+
 import org.junit.After;
 import org.junit.Test;
 import org.openqa.grid.internal.ProxySet;
 
-import java.util.Calendar;
-import java.util.Date;
+import com.rmn.qa.AutomationUtils;
+import com.rmn.qa.BaseTest;
+import com.rmn.qa.MockRemoteProxy;
+import com.rmn.qa.MockVmManager;
+import com.rmn.qa.aws.AwsVmManager;
 
-public class AutomationHubCleanupTaskTest {
+import junit.framework.Assert;
+
+public class AutomationHubCleanupTaskTest extends BaseTest {
 
     @After
     public void afterTest() {

@@ -11,7 +11,6 @@
  */
 package com.rmn.qa;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.rmn.qa.aws.VmManager;
 
 /**
  * Context object used to keep track of registered runs and dynamic nodes.
@@ -39,11 +39,12 @@ public final class AutomationRunContext {
     private static final Logger log = LoggerFactory.getLogger(AutomationRunContext.class);
 
     private static final int CLEANUP_LIFE_LENGTH_IN_SECONDS = 420; // 7 minutes
+    public static final int PENDING_NODE_EXPIRATION_TIME_IN_MINUTES = 20;
     private Map<String, AutomationRunRequest> requests = Maps.newConcurrentMap();
     private Map<String, AutomationDynamicNode> nodes = Maps.newConcurrentMap();
-    private Set<String> pendingStartupNodes = Collections.newSetFromMap(Maps.newConcurrentMap()); // Nodes that are currently starting up and have not registered yet
+    private Map<String, AutomationDynamicNode> pendingStartupNodes = Maps.newConcurrentMap(); // Nodes that are currently starting up and have not registered yet
 
-    private int totalNodeCount;
+    private volatile int totalNodeCount;
 
     @VisibleForTesting
     AutomationRunContext() { }
@@ -310,10 +311,10 @@ public final class AutomationRunContext {
 
     /**
      * Adds the specified node to the pending node collection
-     * @param amiId
+     * @param node
      */
-    public void addPendingNode(String amiId) {
-        pendingStartupNodes.add(amiId);
+    public void addPendingNode(AutomationDynamicNode node) {
+        pendingStartupNodes.put(node.getInstanceId(), node);
     }
 
     /**
@@ -330,14 +331,38 @@ public final class AutomationRunContext {
      * @return True if the node exists, false otherwise
      */
     public boolean pendingNodeExists(String amiId) {
-        return pendingStartupNodes.contains(amiId);
+        return pendingStartupNodes.containsKey(amiId);
+    }
+
+    /**
+     * Removes nodes from the pending collection if they haven't come online after 20 minutes
+     * @param vmManager
+     */
+    public void removeExpiredPendingNodes(VmManager vmManager) {
+        Iterator<Map.Entry<String,AutomationDynamicNode>> iterator = getPendingStartupNodes().entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String,AutomationDynamicNode> entry = iterator.next();
+            AutomationDynamicNode node = entry.getValue();
+            if ((System.currentTimeMillis() - node.getStartDate().getTime()) > PENDING_NODE_EXPIRATION_TIME_IN_MINUTES * 60000) { // 20 minutes
+                log.error(String.format("Node %s was pending longer than 20 minutes.  Removing from pending set.", node));
+                try {
+                    if (!vmManager.terminateInstance(node.getInstanceId())) {
+                        log.warn(String.format("Error terminating pending node %s that never came online", node));
+                    }
+                    node.updateStatus(AutomationDynamicNode.STATUS.TERMINATED);
+                } catch (Exception e) {
+                    log.warn(String.format("Exception terminating pending node %s that never came online", node), e);
+                }
+                iterator.remove();
+            }
+        }
     }
 
     /**
      * Returns the pending nodes collection
      * @return
      */
-    public Set<String> getPendingStartupNodes() {
+    private Map<String, AutomationDynamicNode> getPendingStartupNodes() {
         return pendingStartupNodes;
     }
 

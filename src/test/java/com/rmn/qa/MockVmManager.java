@@ -12,13 +12,15 @@
 
 package com.rmn.qa;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.openqa.selenium.Platform;
+
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.rmn.qa.aws.VmManager;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MockVmManager implements VmManager {
 
@@ -31,7 +33,7 @@ public class MockVmManager implements VmManager {
 
 
     @Override
-    public List<Instance> launchNodes(String uuid, String os, String browser, String hubHostName, int nodeCount, int maxSessions) {
+    public List<Instance> launchNodes(String uuid, Platform platform, String browser, String hubHostName, int nodeCount, int maxSessions) {
         if(throwException) {
             throw new RuntimeException("Can't start nodes");
         }
@@ -40,9 +42,7 @@ public class MockVmManager implements VmManager {
         this.browser = browser;
         Instance instance = new Instance();
         instance.setInstanceId("instanceId");
-        List<Instance> instances = new ArrayList<Instance>();
-        instances.add(instance);
-        return instances;
+        return Arrays.asList(instance);
     }
 
     @Override
