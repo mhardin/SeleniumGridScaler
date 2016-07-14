@@ -66,8 +66,9 @@ public class AwsVmManager implements VmManager {
     private AmazonEC2Client client;
     @VisibleForTesting AWSCredentials credentials;
     private Properties awsProperties;
-    public static final int CHROME_THREAD_COUNT = 5;
-    public static final int FIREFOX_IE_THREAD_COUNT = 1;
+    public static final int CHROME_THREAD_COUNT = 15;
+    public static final int FIREFOX_IE_THREAD_COUNT = 24;
+
     private String region;
 
 

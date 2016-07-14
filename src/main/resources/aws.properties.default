@@ -1,10 +1,11 @@
 ########### Rename this file to 'aws.properties' to override default values
 
 # Default region
-region=us-east-1
+region=us-west-2
+#region=us-east-1
 
 # Endpoints
-us-east-1_endpoint=https://us-east-1.ec2.amazonaws.com
+us-east-1_endpoint=https://ec2.us-east-1.amazonaws.com
 us-west-1_endpoint=https://us-west-1.ec2.amazonaws.com
 us-west-2_endpoint=https://ec2.us-west-2.amazonaws.com
 eu-west-1_endpoint=https://ec2.eu-west-1.amazonaws.com
@@ -14,25 +15,29 @@ ap-northeast-1_endpoint=https://ec2.ap-northeast-1.amazonaws.com
 sa-east-1_endpoint=https://ec2.sa-east-1.amazonaws.com
 
 # Node AMI Info
-us-east-1_linux_node_ami=ami-d216a3ba
-node_instance_type_chrome=c4.large
+us-east-1_linux_node_ami=ami-3472655c
+us-west-2_linux_node_ami=ami-133e0e23
+node_instance_type_chrome=c3.xlarge
 # Firefox and IE will only run in 1 browser per VM so we'll use micros for them
-node_instance_type_firefox=t2.small
-node_instance_type_internetexplorer=t2.small
-us-east-1_windows_node_ami=ami-dcd869b4
+node_instance_type_firefox=c3.xlarge
+node_instance_type_internetexplorer=t2.micro
+east_windows_node_ami=ami-dcd869b4
 
 
 # Security Group Info
-# us-east-1_security_group=sg-00000000
+us-east-1_subnet_id=subnet-df8ad4b4
+us-east-1_security_group=sg-44608f2b,sg-b4618edb,sg-45608f2a
+#us-west-2_security_group=sg-a7a751c8
+us-west-2_security_group=sg-614f1905,sg-5411df30,sg-5536f131,sg-ab36f1cf
 # VPC Info
-# us-east-1_subnet_id=subnet-00000000
+us-west-2_subnet_id=subnet-4d16833a
 # Fallback VPCs
 # us-east-1_subnet_fallback_id_1=subnet-11111111
 # us-east-1_subnet_fallback_id_2=subnet-22222222
 # us-east-1_subnet_fallback_id_3=subnet-33333333
 # Key
-# us-east-1_key_name=keyNameHere
+us-west-2_key_name=ewetest
+us-east-1_key_name=ewetest
 # Tags to be used
-# tagProduct=Department,QA
-
+tagProduct=autoscaled,sel_grid
 

@@ -39,8 +39,8 @@ public class AutomationRunContextTest extends BaseTest {
     @Test
     // Tests that an old run gets cleaned up (removed)
     public void testOldRun() {
-        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"firefox","10", Platform.LINUX,AutomationUtils.modifyDate(new Date(),-5, Calendar.MINUTE));
-        AutomationRunContext context = AutomationContext.getContext();
+        AutomationRunRequest oldRequest = new AutomationRunRequest("uuid",10,"firefox","10",Platform.LINUX,AutomationUtils.modifyDate(new Date(),-15, Calendar.MINUTE));
+         AutomationRunContext context = AutomationContext.getContext();
         context.addRun(oldRequest);
 
         Assert.assertTrue("Run should exist", context.hasRun(oldRequest.getUuid()));
