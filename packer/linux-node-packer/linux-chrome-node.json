@@ -1,0 +1,59 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "package_version" : "1.0.0",
+    "package_name" : "selenium-grid-scaler-node-rhel7",
+    "aws_region": "",
+    "ami_id": "",
+    "ami_description": "Selenium-Grid-Node-Rhel7 {{isotime}}",
+    "vpc_id": "",
+    "subnet_id": "",
+    "os":"linux",
+    "instance_type":"t2.small"
+  },
+  "builders": [{
+    "type": "amazon-ebs"
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "{{user `aws_region`}}",
+    "vpc_id": "{{user `vpc_id`}}",
+    "subnet_id": "{{user `subnet_id`}}",
+    "source_ami": "{{user `ami_id`}}",
+    "instance_type": "{{user `instance_type`}}",
+    "ami_name": "rhel7-selenium-chrome-node-{{user `packer_build_number`}}",
+    "ami_description": "{{user `ami_description`}}",
+    "ssh_timeout": "10m",
+    "ssh_pty": true,
+    "ssh_username": "ec2-user",
+    "tags": {
+      "Name": "{{user `package_name`}}",
+      "Version": "{{user `package_version`}}",
+      "OS": "{{user `os`}}",
+      "Release": "{{user `package_name`}}-{{user `package_version`}}-{{timestamp}}",
+      "Owner": "infrastructure",
+      "Provisioner": "packer"
+    }
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [ "sleep 10" ]
+    },
+    {
+      "type":        "file",
+      "source":      "script.sh",
+      "destination": "/tmp/script.sh"
+    },
+    {
+      "type":        "file",
+      "source":      "google-chrome.repo",
+      "destination": "/tmp/google-chrome.repo"
+    },
+    {
+      "type": "shell",
+      "script": "/tmp/script.sh",
+      "execute_command": "echo '' | {{ .Vars }} sudo -E -S sh '{{ .Path }}'"
+    }
+  ]
+}

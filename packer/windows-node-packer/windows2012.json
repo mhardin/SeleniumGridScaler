@@ -1,0 +1,61 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "package_version" : "1.0.0",
+    "package_name" : "selenium-grid-scaler-node-windows",
+    "aws_region": "",
+    "ami_id": "",
+    "ami_description": "Selenium-Grid-Node-Windows {{isotime}}",
+    "vpc_id": "",
+    "subnet_id": "",
+    "os":"windows",
+    "instance_type":"t2.small"
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "communicator": "winrm",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "{{user `aws_region`}}",
+    "vpc_id": "{{user `vpc_id`}}",
+    "subnet_id": "{{user `subnet_id`}}",
+    "source_ami": "{{user `ami_id`}}",
+    "instance_type": "{{user `instance_type`}}",
+    "ami_name": "{{user `package_name`}}-{{timestamp}}",
+    "ami_description": "{{user `ami_description`}}",
+    "winrm_username":"administrator",
+    "winrm_password":"selenium123#",
+    "user_data_file": "winrm.ps1",
+    "tags": {
+      "Name": "{{user `package_name`}}",
+      "Version": "{{user `package_version`}}",
+      "OS": "{{user `os`}}",
+      "Release": "{{user `package_name`}}-{{user `package_version`}}-{{timestamp}}",
+      "Owner": "infrastructure",
+      "Provisioner": "packer"
+    }
+  }],
+
+  "provisioners": [
+    {
+      "type":"file",
+      "source":"grid.ps1",
+      "destination":"c:\\grid.ps1"
+    },
+    {
+      "type":"file",
+      "source":"grid.cmd",
+      "destination":"C:\\grid.cmd"
+    },
+    {
+      "type":"powershell",
+      "inline":
+      [
+        "copy c:\\grid.cmd 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\grid.cmd'",
+        "ls 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\'"
+      ]
+    }
+
+  ]
+}

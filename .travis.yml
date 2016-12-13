@@ -1,3 +1,5 @@
 language: java
+### https://docs.travis-ci.com/user/migrating-from-legacy/
+sudo: false
 jdk:
-  - openjdk7
+  - oraclejdk8
