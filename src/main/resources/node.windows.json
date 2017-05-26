@@ -4,16 +4,19 @@
             {
                 "browserName": "internet explorer",
                 "maxInstances": <MAX_SESSION_IE>,
+                "instanceId"=<INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
                 "browserName": "chrome",
                 "maxInstances": <MAX_SESSION_IE>,
+                "instanceId"=<INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
                 "browserName": "firefox",
                 "maxInstances": <MAX_SESSION_IE>,
+                "instanceId"=<INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             }
         ],
@@ -22,5 +25,10 @@
         "register": true,
         "registerCycle": 5000,
         "hub": "<HOST_NAME>",
-        "custom": {uuid=<UUID>,instanceId=<INSTANCE_ID>,createdDate=<CREATED_DATE>,createdBrowser=<CREATED_BROWSER>,createdOs=<CREATED_OS>}
+        "custom": {
+            uuid=<UUID>,
+            createdDate=<CREATED_DATE>,
+            createdBrowser=<CREATED_BROWSER>,
+            createdOs=<CREATED_OS>
+        }
 }
