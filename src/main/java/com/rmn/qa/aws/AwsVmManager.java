@@ -493,9 +493,7 @@ public class AwsVmManager implements VmManager {
         Date createdDate = Calendar.getInstance().getTime();
 
         // Pass in the created date so we can know when this node was spun up
-        String nodeCreatedDate = AwsVmManager.NODE_DATE_FORMAT.format(createdDate);
-        nodeCreatedDate = "\"" + nodeCreatedDate + "\"";
-        nodeConfig = nodeConfig.replaceAll("<CREATED_DATE>",nodeCreatedDate );
+        nodeConfig = nodeConfig.replaceAll("<CREATED_DATE>", AwsVmManager.NODE_DATE_FORMAT.format(createdDate));
         String hubUrl = "http://"+hostName+":4444";
         nodeConfig = nodeConfig.replaceFirst("<HOST_NAME>", hubUrl);
         return nodeConfig;

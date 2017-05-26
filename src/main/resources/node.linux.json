@@ -20,9 +20,9 @@
         "registerCycle": 5000,
         "hub": "<HOST_NAME>",
         "custom": {
-            uuid=<UUID>,
-            createdDate=<CREATED_DATE>,
-            createdBrowser=<CREATED_BROWSER>,
-            createdOs=<CREATED_OS>
+            "uuid":"<UUID>",
+            "createdDate":"<CREATED_DATE>",
+            "createdBrowser":"<CREATED_BROWSER>",
+            "createdOs":"<CREATED_OS>"
         }
 }
