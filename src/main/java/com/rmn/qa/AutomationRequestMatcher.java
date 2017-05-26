@@ -49,11 +49,7 @@ public class AutomationRequestMatcher implements RequestMatcher {
             int runningSessions = 0;
             int matchingRunningSessions = 0;
             int maxNodeThreadsAvailable = proxy.getMaxNumberOfConcurrentTestSessions();
-            Map<String,Object> config = proxy.getConfig();
-            String instanceId = null;
-            if(config.containsKey(AutomationConstants.INSTANCE_ID)) {
-                instanceId = (String)config.get(AutomationConstants.INSTANCE_ID);
-            }
+            String instanceId = proxy.getConfig().custom.get(AutomationConstants.INSTANCE_ID);
             boolean nodeMarkedForTermination = false;
             if(instanceId != null) {
                 AutomationDynamicNode node = AutomationContext.getContext().getNode(instanceId);

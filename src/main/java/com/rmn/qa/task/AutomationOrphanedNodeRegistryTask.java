@@ -70,24 +70,24 @@ public class AutomationOrphanedNodeRegistryTask extends AbstractAutomationCleanu
         ProxySet proxySet = getProxySet();
         if(proxySet != null && proxySet.size() > 0) {
             for(RemoteProxy proxy : proxySet) {
-                Map<String,Object> config = proxy.getConfig();
+                Map<String, String> customConfig = proxy.getConfig().custom;
                 // If the config has an instanceId in it, this means this node was dynamically started and we should
                 // track it if we are not already
-                if(config.containsKey(AutomationConstants.INSTANCE_ID)) {
-                    String instanceId = (String)config.get(AutomationConstants.INSTANCE_ID);
+                if(customConfig.containsKey(AutomationConstants.INSTANCE_ID)) {
+                    String instanceId = (String)customConfig.get(AutomationConstants.INSTANCE_ID);
                     AutomationRunContext context = AutomationContext.getContext();
                     // If this node is already in our context, that means we are already tracking this node to terminate
                     if(!context.nodeExists(instanceId)) {
-                        Date createdDate = getDate(config);
+                        Date createdDate = getDate(customConfig);
                         // If we couldn't parse the date out, we are sort of out of luck
                         if(createdDate == null) {
                             break;
                         }
                         proxy.getConfig();
-                        String uuid = (String)config.get(AutomationConstants.UUID);
-                        int threadCount = (Integer)config.get(AutomationConstants.CONFIG_MAX_SESSION);
-                        String browser = (String)config.get(AutomationConstants.CONFIG_BROWSER);
-                        String os = (String)config.get(AutomationConstants.CONFIG_OS);
+                        String uuid = (String)customConfig.get(AutomationConstants.UUID);
+                        int threadCount = proxy.getConfig().maxSession;
+                        String browser = (String)customConfig.get(AutomationConstants.CONFIG_BROWSER);
+                        String os = (String)customConfig.get(AutomationConstants.CONFIG_OS);
                         Platform platform = AutomationUtils.getPlatformFromObject(os);
                         AutomationDynamicNode node = new AutomationDynamicNode(uuid, instanceId, browser, platform, createdDate, threadCount);
                         log.info("Unregistered dynamic node found: " + node);
@@ -99,12 +99,12 @@ public class AutomationOrphanedNodeRegistryTask extends AbstractAutomationCleanu
     }
 
     /**
-     * Attempts to parse the created date of the node from the capabilities object
-     * @param capabilities
+     * Attempts to parse the created date of the node from the custom parameters
+     * @param customConfig
      * @return
      */
-    private Date getDate(Map<String,Object> capabilities) {
-        String stringDate = (String)capabilities.get(AutomationConstants.CONFIG_CREATED_DATE);
+    private Date getDate(Map<String,String> customConfig) {
+        String stringDate = (String)customConfig.get(AutomationConstants.CONFIG_CREATED_DATE);
         Date returnDate = null;
         try{
             returnDate = AwsVmManager.NODE_DATE_FORMAT.parse(stringDate);

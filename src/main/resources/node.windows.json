@@ -4,33 +4,31 @@
             {
                 "browserName": "internet explorer",
                 "maxInstances": <MAX_SESSION_IE>,
-                "instanceId": "<INSTANCE_ID>",
+                "instanceId"=<INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
                 "browserName": "chrome",
                 "maxInstances": <MAX_SESSION_IE>,
-                "instanceId": "<INSTANCE_ID>",
+                "instanceId"=<INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
                 "browserName": "firefox",
                 "maxInstances": <MAX_SESSION_IE>,
-                "instanceId": "<INSTANCE_ID>",
+                "instanceId"=<INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             }
         ],
-    "configuration":
-    {
         "proxy": "org.openqa.grid.selenium.proxy.DefaultRemoteProxy",
         "maxSession": <MAX_SESSION>,
-        "uuid": "<UUID>",
-        "instanceId": "<INSTANCE_ID>",
-        "createdDate": "<CREATED_DATE>",
-        "createdBrowser": "<CREATED_BROWSER>",
-        "createdOs": "<CREATED_OS>",
         "register": true,
         "registerCycle": 5000,
-        "hubHost": "<HOST_NAME>"
-    }
+        "hub": "<HOST_NAME>",
+        "custom": {
+            "uuid":"<UUID>",
+            "createdDate":"<CREATED_DATE>",
+            "createdBrowser":"<CREATED_BROWSER>",
+            "createdOs":"<CREATED_OS>"
+        }
 }

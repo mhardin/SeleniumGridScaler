@@ -29,7 +29,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.Registry;
-import org.openqa.grid.selenium.GridLauncher;
+import org.openqa.grid.selenium.GridLauncherV3;
 import org.openqa.grid.web.servlet.RegistryBasedServlet;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.BrowserType;
@@ -352,7 +352,7 @@ public class AutomationTestRunServlet extends RegistryBasedServlet implements Re
     // Run this for local testing
     public static void main(String args[]) {
         try{
-            GridLauncher.main(args);
+            GridLauncherV3.main(args);
         }catch(Exception e) {
             log.error("Error starting up grid: " + e);
         }

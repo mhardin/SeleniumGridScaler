@@ -46,7 +46,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         ProxySet proxySet = new ProxySet(false);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID, nodeId);
         proxy.setConfig(config);
         List<TestSlot> testSlots = new ArrayList<>();
@@ -74,7 +74,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
         proxy.setMaxNumberOfConcurrentTestSessions(5);
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         proxy.setConfig(config);
         List<TestSlot> testSlots = new ArrayList<>();
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -101,7 +101,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(5);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID, nodeId);
         proxy.setConfig(config);
         List<TestSlot> testSlots = new ArrayList<>();
@@ -129,7 +129,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -157,7 +157,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -184,7 +184,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -210,7 +210,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -236,7 +236,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(10);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -262,7 +262,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(15);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -288,7 +288,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(5);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -316,7 +316,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy nonMatchingProxy = new MockRemoteProxy();
         nonMatchingProxy.setMaxNumberOfConcurrentTestSessions(50);
         nonMatchingProxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         nonMatchingProxy.setConfig(config);
         Map<String,Object> nonMatchingCapabilities = Maps.newHashMap();
@@ -356,7 +356,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID, nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -383,7 +383,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(15);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -418,7 +418,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -454,7 +454,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(50);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> capabilities = Maps.newHashMap();
@@ -479,7 +479,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(10);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> nonMatchingCapabilities = Maps.newHashMap();
@@ -513,7 +513,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxy.setMaxNumberOfConcurrentTestSessions(6);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,String> config = Maps.newHashMap();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         Map<String,Object> nonMatchingCapabilities = Maps.newHashMap();
@@ -532,7 +532,7 @@ public class AutomationRequestMatcherTest extends BaseTest {
         MockRemoteProxy proxy2 = new MockRemoteProxy();
         proxy2.setMaxNumberOfConcurrentTestSessions(12);
         proxy2.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config2 = Maps.newHashMap();
+        Map<String,String> config2 = Maps.newHashMap();
         config2.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy2.setConfig(config2);
         Map<String,Object> nonMatchingCapabilities2 = Maps.newHashMap();

@@ -90,7 +90,7 @@ public class AutomationNodeCleanupTaskTest extends BaseTest {
         AutomationContext.getContext().addNode(node);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,String> config = new HashMap<String, String>();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
@@ -118,7 +118,7 @@ public class AutomationNodeCleanupTaskTest extends BaseTest {
         AutomationContext.getContext().addNode(node);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,String> config = new HashMap<String, String>();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
@@ -179,7 +179,7 @@ public class AutomationNodeCleanupTaskTest extends BaseTest {
         AutomationContext.getContext().addNode(node);
         MockRemoteProxy proxy = new MockRemoteProxy();
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,String> config = new HashMap<String, String>();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
@@ -243,20 +243,20 @@ public class AutomationNodeCleanupTaskTest extends BaseTest {
         proxySet.add(proxy);
         proxySet.add(proxy2);
         proxySet.add(proxy3);
-        Map<String,Object> config = new HashMap<>();
+        Map<String,String> config = new HashMap<>();
         config.put(AutomationConstants.INSTANCE_ID,nodeId);
         proxy.setConfig(config);
         proxy.setMaxNumberOfConcurrentTestSessions(4);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
 
-        Map<String,Object> config2 = new HashMap<>();
+        Map<String,String> config2 = new HashMap<>();
         config2.put(AutomationConstants.INSTANCE_ID,nodeId2);
         proxy2.setMaxNumberOfConcurrentTestSessions(4);
         proxy2.setConfig(config2);
         proxy2.setCapabilityMatcher(new AutomationCapabilityMatcher());
 
 
-        Map<String,Object> config3 = new HashMap<>();
+        Map<String,String> config3 = new HashMap<>();
         config3.put(AutomationConstants.INSTANCE_ID,nodeId3);
         proxy3.setMaxNumberOfConcurrentTestSessions(4);
         proxy3.setConfig(config3);
@@ -330,7 +330,7 @@ public class AutomationNodeCleanupTaskTest extends BaseTest {
         task.setProxySet(proxySet);
         AutomationDynamicNode node = new AutomationDynamicNode("testUuid","dummyId",null,null,AutomationUtils.modifyDate(new Date(),-56, Calendar.MINUTE),10);
         proxy.setCapabilityMatcher(new AutomationCapabilityMatcher());
-        Map<String,Object> config = new HashMap<>();
+        Map<String,String> config = new HashMap<>();
         config.put(AutomationConstants.INSTANCE_ID,node.getInstanceId());
         proxy.setConfig(config);
         AutomationContext.getContext().addNode(node);
