@@ -24,13 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.openqa.grid.internal.utils.configuration.GridNodeConfiguration;
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.RemoteProxy;
 import org.openqa.grid.internal.TestSlot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.rmn.qa.AutomationConstants;
 import com.rmn.qa.AutomationContext;
@@ -144,9 +143,9 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
         Iterator<RemoteProxy> iterator = proxySet.iterator();
         while(iterator.hasNext()) {
             RemoteProxy proxy = iterator.next();
-            Map<String,Object> config = proxy.getConfig();
-            if(config.containsKey(AutomationConstants.INSTANCE_ID)) {
-                String nodeInstanceId = (String)config.get(AutomationConstants.INSTANCE_ID);
+            GridNodeConfiguration config = proxy.getConfig();
+            if(config.custom.containsKey(AutomationConstants.INSTANCE_ID)) {
+                String nodeInstanceId = (String)config.custom.get(AutomationConstants.INSTANCE_ID);
                 if (instanceId.equals(nodeInstanceId)) {
                     log.info("Node found to remove from proxy set: " + instanceId);
                     removeProxy(proxy);
@@ -175,7 +174,7 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
         Set<AutomationRunRequest> existingSlots = new HashSet<>();
         Map<String,RemoteProxy> proxies = new HashMap<>();
         for(RemoteProxy proxy : proxySet) {
-            Object instanceId = proxy.getConfig().get(AutomationConstants.INSTANCE_ID);
+            Object instanceId = proxy.getConfig().custom.get(AutomationConstants.INSTANCE_ID);
             if(node.getInstanceId().equals(instanceId)) {
                 // Associate this proxy with the instance id for use later
                 proxies.put((String)instanceId,proxy);
@@ -241,7 +240,7 @@ public class AutomationNodeCleanupTask extends AbstractAutomationCleanupTask {
         boolean nodeEmpty = true;
         for (RemoteProxy proxy : proxySet) {
             List<TestSlot> slots = proxy.getTestSlots();
-            Object instanceId = proxy.getConfig().get(AutomationConstants.INSTANCE_ID);
+            Object instanceId = proxy.getConfig().custom.get(AutomationConstants.INSTANCE_ID);
             // If the instance id's do not match, this means this is not the node we are looking for
             // and we should continue on to the next one
             if(!instanceToFind.equals(instanceId)) {

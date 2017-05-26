@@ -16,10 +16,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.junit.After;
@@ -359,7 +356,7 @@ public class VmManagerTest extends BaseTest {
         String instanceId="foo";
         TerminateInstancesResult terminateInstancesResult = new TerminateInstancesResult();
         client.setTerminateInstancesResult(terminateInstancesResult);
-        terminateInstancesResult.setTerminatingInstances(CollectionUtils.EMPTY_COLLECTION);
+        terminateInstancesResult.setTerminatingInstances(Collections.unmodifiableList(new ArrayList<InstanceStateChange>(0)));
         Properties properties = new Properties();
         String region = "east";
         MockManageVm manageEC2 = new MockManageVm(client,properties,region);

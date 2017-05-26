@@ -108,13 +108,18 @@ public class AutomationRunContextTest extends BaseTest {
         CapabilityMatcher matcher = new AutomationCapabilityMatcher();
         proxy.setCapabilityMatcher(matcher);
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<>();
+        Map<String,String> config = new HashMap<>();
         config.put(AutomationConstants.UUID,uuid);
         proxy.setConfig(config);
+
+        Map<String,Object> config2 = new HashMap<>();
+        config2.put(AutomationConstants.UUID,uuid);
+        proxy.setConfig(config);
+
         List<TestSlot> testSlots = new ArrayList<>();
-        TestSlot testSlot = new TestSlot(proxy,null,null,config);
+        TestSlot testSlot = new TestSlot(proxy,null,null,config2);
         proxy.setTestSlots(testSlots);
-        testSlot.getNewSession(config);
+        testSlot.getNewSession(config2);
         testSlots.add(testSlot);
         proxySet.add(proxy);
         context.cleanUpRunRequests(proxySet);
@@ -135,11 +140,16 @@ public class AutomationRunContextTest extends BaseTest {
         CapabilityMatcher matcher = new AutomationCapabilityMatcher();
         proxy.setCapabilityMatcher(matcher);
         proxySet.add(proxy);
-        Map<String,Object> config = new HashMap<>();
+        Map<String,String> config = new HashMap<>();
         config.put(AutomationConstants.UUID,uuid);
         proxy.setConfig(config);
+
+        Map<String,Object> config2 = new HashMap<>();
+        config2.put(AutomationConstants.UUID,uuid);
+        proxy.setConfig(config);
+
         List<TestSlot> testSlots = new ArrayList<>();
-        TestSlot testSlot = new TestSlot(proxy,null,null,config);
+        TestSlot testSlot = new TestSlot(proxy,null,null,config2);
         proxy.setTestSlots(testSlots);
         testSlots.add(testSlot);
         proxySet.add(proxy);

@@ -11,20 +11,21 @@
  */
 package com.rmn.qa.task;
 
+import java.text.ParseException;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Map;
+
+import org.openqa.grid.internal.ProxySet;
+import org.openqa.grid.internal.utils.configuration.GridHubConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.rmn.qa.AutomationConstants;
 import com.rmn.qa.AutomationUtils;
 import com.rmn.qa.RegistryRetriever;
 import com.rmn.qa.aws.AwsVmManager;
 import com.rmn.qa.aws.VmManager;
-import org.openqa.grid.internal.ProxySet;
-import org.openqa.grid.internal.utils.GridHubConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.text.ParseException;
-import java.util.Calendar;
-import java.util.Date;
 
 /**
  * Task to shut down the hub if it was dynamically started.  This task should only be started if this hub is a
@@ -75,8 +76,24 @@ public class AutomationHubCleanupTask extends AbstractAutomationCleanupTask {
      */
     protected Object getCreatedDate() {
         GridHubConfiguration config = registryRetriever.retrieveRegistry().getConfiguration();
-        Object createdDate = config.getAllParams().get(AutomationConstants.CONFIG_CREATED_DATE);
+        Object createdDate = getDate(config.custom);
         return createdDate;
+    }
+
+    /**
+     +     * Attempts to parse the created date of the node from the custom parameter
+     +     * @param customConfig
+     +     * @return
+     +     */
+    private Date getDate(Map<String, String> customConfig) {
+        String stringDate = (String)customConfig.get(AutomationConstants.CONFIG_CREATED_DATE);
+        Date returnDate = null;
+        try{
+            returnDate = AwsVmManager.NODE_DATE_FORMAT.parse(stringDate);
+        } catch (ParseException pe) {
+            log.error(String.format("Error trying to parse created date [%s]", stringDate), pe);
+        }
+        return returnDate;
     }
 
     // We're going to continuously monitor this hub to see if we can shut it down.  If were approaching the next

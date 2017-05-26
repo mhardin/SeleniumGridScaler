@@ -31,7 +31,7 @@ public class AutomationPendingNodeRegistryTaskTest extends BaseTest {
 		ProxySet proxySet = new ProxySet(false);
 		MockRemoteProxy proxy = new MockRemoteProxy();
 		proxySet.add(proxy);
-		Map<String,Object> config = new HashMap<>();
+		Map<String,String> config = new HashMap<>();
 		String instanceId = "instanceId";
 		AutomationDynamicNode node = new AutomationDynamicNode(null, instanceId, null, null, null, new Date(), 1);
 		AutomationContext.getContext().addPendingNode(node);
@@ -51,7 +51,7 @@ public class AutomationPendingNodeRegistryTaskTest extends BaseTest {
 		ProxySet proxySet = new ProxySet(false);
 		MockRemoteProxy proxy = new MockRemoteProxy();
 		proxySet.add(proxy);
-		Map<String,Object> config = new HashMap<>();
+		Map<String,String> config = new HashMap<>();
 		String instanceId = "instanceId";
 		String instanceIdDifferent = "differentInstanceId";
 		AutomationDynamicNode node = new AutomationDynamicNode(null, instanceIdDifferent, null, null, null, new Date(), 1);
@@ -74,7 +74,7 @@ public class AutomationPendingNodeRegistryTaskTest extends BaseTest {
 		ProxySet proxySet = new ProxySet(false);
 		MockRemoteProxy proxy = new MockRemoteProxy();
 		proxySet.add(proxy);
-		Map<String,Object> config = new HashMap<>();
+		Map<String,String> config = new HashMap<>();
 		String instanceId = "instanceId";
 		AutomationDynamicNode node = new AutomationDynamicNode(null, instanceId, null, null, null, new Date(), 1);
 		AutomationContext.getContext().addPendingNode(node);

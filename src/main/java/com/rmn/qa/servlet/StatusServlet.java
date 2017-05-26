@@ -20,17 +20,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
-import org.openqa.grid.common.GridDocHelper;
 import org.openqa.grid.internal.Registry;
 import org.openqa.grid.internal.RemoteProxy;
 import org.openqa.grid.internal.TestSession;
 import org.openqa.grid.internal.TestSlot;
-import org.openqa.grid.internal.utils.GridHubConfiguration;
+import org.openqa.grid.internal.utils.configuration.GridHubConfiguration;
 import org.openqa.grid.selenium.proxy.DefaultRemoteProxy;
 import org.openqa.grid.web.servlet.RegistryBasedServlet;
 import org.openqa.grid.web.utils.BrowserNameUtils;
@@ -129,7 +129,7 @@ public class StatusServlet extends RegistryBasedServlet {
             localBuilder.append("<legend>").append(proxy.getClass().getSimpleName()).append("</legend>");
             localBuilder.append("listening on ").append(proxy.getRemoteHost());
 
-            Object instanceId = proxy.getConfig().get(AutomationConstants.INSTANCE_ID);
+            Object instanceId = proxy.getConfig().custom.get(AutomationConstants.INSTANCE_ID);
             if(instanceId != null) {
                 AutomationDynamicNode node = AutomationContext.getContext().getNode((String)instanceId);
                 if(node != null) {
@@ -231,19 +231,18 @@ public class StatusServlet extends RegistryBasedServlet {
 
         if (verbose) {
 
-            GridHubConfiguration tmp = new GridHubConfiguration();
-            tmp.loadDefault();
+            GridHubConfiguration tmp = GridHubConfiguration.loadFromJSON("defaults/DefaultHub.json");
 
             builder.append("<b>Config details :</b><br/>");
-            builder.append("<b>hub launched with :</b>");
+            /*builder.append("<b>hub launched with :</b>");
             for (int i = 0; i < config.getArgs().length; i++) {
                 builder.append(config.getArgs()[i]).append(" ");
-            }
+            } */
 
             builder.append("<br/><b>the final configuration comes from :</b><br/>");
             builder.append("<b>the default :</b><br/>");
             builder.append(prettyHtmlPrint(tmp));
-
+            /*
             builder.append("<b>updated with grid1 config :</b>");
             if (config.getGrid1Yml() != null) {
                 builder.append(config.getGrid1Yml()).append("<br/>");
@@ -252,65 +251,68 @@ public class StatusServlet extends RegistryBasedServlet {
             } else {
                 builder
                         .append("No grid1 file specified. To specify one, use -grid1Yml XXX.yml where XXX.yml is a grid1 config file</br>");
-            }
+            } */
 
-            builder.append("<br/><b>updated with grid2 config : </b>");
-            if (config.getGrid2JSON() != null) {
-                builder.append(config.getGrid2JSON()).append("<br/>");
-                tmp.loadFromJSON(config.getGrid2JSON());
+            builder.append("<br/><b>updated with hub config : </b>");
+            if (config.hubConfig != null) {
+                builder.append(config.hubConfig).append("<br/>");
+                tmp=GridHubConfiguration.loadFromJSON(config.hubConfig);
                 builder.append(prettyHtmlPrint(tmp));
             } else {
                 builder
                         .append("No hub config file specified. To specify one, use -hubConfig XXX.json where XXX.json is a hub config file</br>");
             }
 
-            builder.append("<br/><b>updated with params :</b></br>");
+            /*builder.append("<br/><b>updated with params :</b></br>");
             tmp.loadFromCommandLine(config.getArgs());
-            builder.append(prettyHtmlPrint(tmp));
+            builder.append(prettyHtmlPrint(tmp));*/
         }
         return builder.toString();
     }
 
     private String key(String key) {
-        return "<abbr title='" + GridDocHelper.getHubParam(key) + "'>" + key + " : </abbr>";
+        // return "<abbr title='" + GridDocHelper.getHubParam(key) + "'>" + key + " : </abbr>";
+        // no help for Selenium V3
+        return "<abbr title='" + "No help specified for " + key + "'>" + key + " : </abbr>";
     }
 
     private String prettyHtmlPrint(GridHubConfiguration config) {
         StringBuilder b = new StringBuilder();
 
-        b.append(key("host")).append(config.getHost()).append("</br>");
-        b.append(key("port")).append(config.getPort()).append("</br>");
-        b.append(key("cleanUpCycle")).append(config.getCleanupCycle()).append("</br>");
-        b.append(key("timeout")).append(config.getTimeout()).append("</br>");
-        b.append(key("browserTimeout")).append(config.getBrowserTimeout()).append("</br>");
+        b.append(key("host")).append(config.host).append("</br>");
+        b.append(key("port")).append(config.port).append("</br>");
+        b.append(key("cleanUpCycle")).append(config.cleanUpCycle).append("</br>");
+        b.append(key("timeout")).append(config.timeout).append("</br>");
+        b.append(key("browserTimeout")).append(config.browserTimeout).append("</br>");
 
 
-        b.append(key("newSessionWaitTimeout")).append(config.getNewSessionWaitTimeout())
+        b.append(key("newSessionWaitTimeout")).append(config.newSessionWaitTimeout)
                 .append("</br>");
-        b.append(key("grid1Mapping")).append(config.getGrid1Mapping()).append("</br>");
-        b.append(key("throwOnCapabilityNotPresent")).append(config.isThrowOnCapabilityNotPresent())
+        //no grid1mapping
+        //b.append(key("grid1Mapping")).append(config.getGrid1Mapping()).append("</br>");
+        b.append(key("throwOnCapabilityNotPresent")).append(config.throwOnCapabilityNotPresent)
                 .append("</br>");
 
         b.append(key("capabilityMatcher"))
                 .append(
-                        config.getCapabilityMatcher() == null ? "null" : config.getCapabilityMatcher()
+                        config.capabilityMatcher == null ? "null" : config.capabilityMatcher
                                 .getClass().getCanonicalName()).append("</br>");
         b.append(key("prioritizer"))
                 .append(
-                        config.getPrioritizer() == null ? "null" : config.getPrioritizer().getClass()
+                        config.prioritizer == null ? "null" : config.prioritizer.getClass()
                                 .getCanonicalName())
                 .append("</br>");
         b.append(key("servlets"));
-        for (String s : config.getServlets()) {
+        for (String s : config.servlets) {
             b.append(s.getClass().getCanonicalName()).append(",");
         }
         b.append("</br></br>");
-        b.append("<u>all params :</u></br></br>");
+        b.append("<u>all customs :</u></br></br>");
         List<String> keys = new ArrayList<String>();
-        keys.addAll(config.getAllParams().keySet());
+        keys.addAll(config.custom.keySet());
         Collections.sort(keys);
         for (String s : keys) {
-            b.append(key(s.replaceFirst("-", ""))).append(config.getAllParams().get(s)).append("</br>");
+            b.append(key(s.replaceFirst("-", ""))).append(config.custom.get(s)).append("</br>");
         }
         b.append("</br>");
         return b.toString();

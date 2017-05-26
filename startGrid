@@ -8,7 +8,7 @@
 java -DawsAccessKey="${AWS_ACCESS_KEY}" \
     -DawsSecretKey="${AWS_SECRET_KEY}" \
     -DipAddress="${IP_ADDRESS}" \
-    -cp /target/automation-grid.jar org.openqa.grid.selenium.GridLauncher \
+    -cp /target/automation-grid.jar org.openqa.grid.selenium.GridLauncherV3 \
     -role hub \
     -servlets "com.rmn.qa.servlet.AutomationTestRunServlet","com.rmn.qa.servlet.StatusServlet"
 

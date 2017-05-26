@@ -18,6 +18,7 @@ import org.openqa.grid.internal.RemoteProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.openqa.grid.internal.utils.configuration.GridNodeConfiguration;
 import com.google.common.annotations.VisibleForTesting;
 import com.rmn.qa.AutomationConstants;
 import com.rmn.qa.AutomationContext;
@@ -70,11 +71,11 @@ public class AutomationPendingNodeRegistryTask extends AbstractAutomationCleanup
 		ProxySet proxySet = getProxySet();
 		if (proxySet != null && !proxySet.isEmpty()) {
 			for (RemoteProxy proxy : proxySet) {
-				Map<String, Object> config = proxy.getConfig();
+				Map<String, String> customConfig = proxy.getConfig().custom;
 				// If the config has an instanceId in it, this means this node was dynamically started and we should
 				// track it if we are not already
-				if (config.containsKey(AutomationConstants.INSTANCE_ID)) {
-					String instanceId = (String) config.get(AutomationConstants.INSTANCE_ID);
+				if (customConfig.containsKey(AutomationConstants.INSTANCE_ID)) {
+					String instanceId = (String) customConfig.get(AutomationConstants.INSTANCE_ID);
 					AutomationRunContext context = AutomationContext.getContext();
 					// If this node is already in our context, that means we are already tracking this node to terminate
 					if (context.pendingNodeExists(instanceId)) {
