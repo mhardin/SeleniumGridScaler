@@ -4,13 +4,13 @@
             {
                 "browserName": "firefox",
                 "maxInstances": <MAX_SESSION_FIREFOX>,
-                "instanceId"=<INSTANCE_ID>,
+                "instanceId": <INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
                 "browserName": "chrome",
                 "maxInstances": <MAX_SESSION_CHROME>,
-                "instanceId"=<INSTANCE_ID>,
+                "instanceId": <INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             }
         ],
