@@ -4,13 +4,13 @@
             {
                 "browserName": "internet explorer",
                 "maxInstances": <MAX_SESSION_IE>,
-                "instanceId"=<INSTANCE_ID>,
+                "instanceId": <INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
                 "browserName": "chrome",
                 "maxInstances": <MAX_SESSION_IE>,
-                "instanceId"=<INSTANCE_ID>,
+                "instanceId": <INSTANCE_ID>,
                 "seleniumProtocol": "WebDriver"
             },
             {
