@@ -66,8 +66,13 @@ public class AwsVmManager implements VmManager {
     private AmazonEC2Client client;
     @VisibleForTesting AWSCredentials credentials;
     private Properties awsProperties;
-    public static final int CHROME_THREAD_COUNT = 5;
-    public static final int FIREFOX_IE_THREAD_COUNT = 1;
+    
+    // How many chrome browser processes are allowed per EC2 instance.
+    public static int CHROME_THREAD_COUNT = 5;
+    
+    // How many firefox browser processes are allowed per EC2 instance.
+    public static int FIREFOX_IE_THREAD_COUNT = 1;
+    
     private String region;
 
 
@@ -95,6 +100,33 @@ public class AwsVmManager implements VmManager {
             client = new AmazonEC2Client();
         }
         AwsVmManager.setRegion(client, awsProperties, region);
+        
+        // Allow the user to override the default settings for browser 
+        // processes per EC2 operating system instance.
+        String maxChromeThreads = awsProperties.getProperty("node_max_processes_chrome");
+        if ((null != maxChromeThreads) && (0 != maxChromeThreads.length())) {
+        	int newMaxChromeThreads = Integer.parseInt(maxChromeThreads);
+        	// Sanity check the maximum chrome instances setting.  Hard max of 128 sounds good.
+        	if ((newMaxChromeThreads >= 1) && (newMaxChromeThreads <= 128)) {
+        		log.info("Overriding factory default maximum chrome threads with: " + newMaxChromeThreads);
+        		CHROME_THREAD_COUNT = newMaxChromeThreads;
+        	} else {
+        		log.error("Invalid property setting for 'node_max_processes_chrome', ignoring '" + maxChromeThreads + "', using factory default of " + CHROME_THREAD_COUNT);
+        	}
+        }
+        
+        String maxFirefoxThreads = awsProperties.getProperty("node_max_processes_firefox");
+        if ((null != maxFirefoxThreads) && (0 != maxFirefoxThreads.length())) {
+        	int newMaxFirefoxThreads = Integer.parseInt(maxFirefoxThreads);
+        	// Sanity check the maximum firefox instances setting.  Hard max of 128 sounds good.
+        	if ((newMaxFirefoxThreads >= 1) && (newMaxFirefoxThreads <= 128)) {
+        		log.info("Overriding factory default maximum chrome threads with: " + newMaxFirefoxThreads);
+        		FIREFOX_IE_THREAD_COUNT = newMaxFirefoxThreads;
+        	} else {
+        		log.error("Invalid property setting for 'node_max_processes_firefox', ignoring '" + maxFirefoxThreads + "', using factory default of " + FIREFOX_IE_THREAD_COUNT);
+        	}
+        }
+        
     }
 
     public static void setRegion(AmazonEC2Client client, Properties awsProperties, String region) {
