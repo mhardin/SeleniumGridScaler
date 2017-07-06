@@ -27,6 +27,7 @@
         "hub": "<HOST_NAME>",
         "custom": {
             "uuid":"<UUID>",
+            "instanceId": "<INSTANCE_ID>",
             "createdDate":"<CREATED_DATE>",
             "createdBrowser":"<CREATED_BROWSER>",
             "createdOs":"<CREATED_OS>"
