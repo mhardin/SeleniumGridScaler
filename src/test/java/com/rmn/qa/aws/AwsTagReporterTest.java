@@ -12,116 +12,107 @@
 
 package com.rmn.qa.aws;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Properties;
-
-import org.junit.Test;
-
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.rmn.qa.BaseTest;
-
 import junit.framework.Assert;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Properties;
+
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AwsTagReporterTest extends BaseTest {
 
+    AwsTagReporter reporter = mock(AwsTagReporter.class);
+
     @Test
-         public void testTagsAssociated() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
-        Collection<Instance> instances = Arrays.asList(new Instance());
+    public void testTagsAssociated() {
         DescribeInstancesResult describeInstancesResult = new DescribeInstancesResult();
         Reservation reservation = new Reservation();
         describeInstancesResult.setReservations(Arrays.asList(reservation));
-        reservation.setInstances(instances);
-        client.setDescribeInstances(describeInstancesResult);
+
         Properties properties = new Properties();
         properties.setProperty("tagAccounting","key,value");
         properties.setProperty("function_tag","foo2");
         properties.setProperty("product_tag","foo3");
-        AwsTagReporter reporter = new AwsTagReporter("testUuid",client,instances,properties);
+
+        when(reporter.getExistingInstances()).thenReturn(describeInstancesResult);
         reporter.run();
     }
 
     @Test
     public void testExceptionCaught() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
-        Collection<Instance> instances = Arrays.asList(new Instance());
         DescribeInstancesResult describeInstancesResult = new DescribeInstancesResult();
         Reservation reservation = new Reservation();
-        describeInstancesResult.setReservations(Arrays.asList(reservation));
+        Collection<Instance> instances = Arrays.asList(new Instance());
         reservation.setInstances(instances);
-        client.setDescribeInstances(describeInstancesResult);
+        describeInstancesResult.setReservations(Arrays.asList(reservation));
+
         Properties properties = new Properties();
         properties.setProperty("tagAccounting","key");
         properties.setProperty("function_tag","foo2");
         properties.setProperty("product_tag","foo3");
-        AwsTagReporter reporter = new AwsTagReporter("testUuid",client,instances,properties);
+
+        when(reporter.getExistingInstances()).thenReturn(describeInstancesResult);
         reporter.run();
     }
 
     @Test
     public void testClientThrowsErrors() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
-        client.setDescribeInstancesToThrowError();
         Collection<Instance> instances = Arrays.asList(new Instance());
         DescribeInstancesResult describeInstancesResult = new DescribeInstancesResult();
         Reservation reservation = new Reservation();
         describeInstancesResult.setReservations(Arrays.asList(reservation));
         reservation.setInstances(instances);
-        client.setDescribeInstances(describeInstancesResult);
+
         Properties properties = new Properties();
         properties.setProperty("accounting_tag","foo");
         properties.setProperty("function_tag","foo2");
         properties.setProperty("product_tag","foo3");
-        AwsTagReporter reporter = new AwsTagReporter("testUuid",client,instances,properties) {
-            @Override
-            void sleep() throws InterruptedException {
-                // do nothing
-            }
-        };
+
+        when(reporter.getExistingInstances()).thenThrow(new AmazonClientException("Test error"));
         reporter.run();
     }
 
     @Test
-    public void testSleepThrowsErrors() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
-        client.setDescribeInstancesToThrowError();
+    public void testSleepThrowsErrors() throws InterruptedException {
         Collection<Instance> instances = Arrays.asList(new Instance());
         DescribeInstancesResult describeInstancesResult = new DescribeInstancesResult();
         Reservation reservation = new Reservation();
         describeInstancesResult.setReservations(Arrays.asList(reservation));
         reservation.setInstances(instances);
-        client.setDescribeInstances(describeInstancesResult);
+
         Properties properties = new Properties();
         properties.setProperty("accounting_tag","foo");
         properties.setProperty("function_tag","foo2");
         properties.setProperty("product_tag","foo3");
-        AwsTagReporter reporter = new AwsTagReporter("testUuid",client,instances,properties) {
-            @Override
-            void sleep() throws InterruptedException {
-                throw new InterruptedException();
-            }
-        };
+
+        when(reporter.getExistingInstances()).thenReturn(describeInstancesResult);
+        doThrow(new InterruptedException()).when(reporter).sleep();
         reporter.run();
     }
 
-    @Test()
+    @Test
     public void testThreadTimesOut() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
-        Collection<Instance> instances = Arrays.asList(new Instance());
         DescribeInstancesResult describeInstancesResult = new DescribeInstancesResult();
         Reservation reservation = new Reservation();
         describeInstancesResult.setReservations(Arrays.asList(reservation));
         // Make count mismatch
         reservation.setInstances(Arrays.asList(new Instance(),new Instance()));
-        client.setDescribeInstances(describeInstancesResult);
+
         Properties properties = new Properties();
         properties.setProperty("accounting_tag","foo");
         properties.setProperty("function_tag","foo2");
         properties.setProperty("product_tag","foo3");
-        AwsTagReporter reporter = new AwsTagReporter("testUuid",client,instances,properties);
+
+        doThrow(new RuntimeException("Error waiting for instances to exist to add tags")).when(reporter).run();
         AwsTagReporter.TIMEOUT_IN_SECONDS = 1;
         try{
             reporter.run();

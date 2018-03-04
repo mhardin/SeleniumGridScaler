@@ -30,6 +30,10 @@ import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+import com.amazonaws.services.ec2.model.InstanceNetworkInterfaceSpecification;
 import org.apache.commons.codec.binary.Base64;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.BrowserType;
@@ -39,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceState;
@@ -62,14 +65,19 @@ public class AwsVmManager implements VmManager {
 
     private static final Logger log = LoggerFactory.getLogger(AwsVmManager.class);
     public static final DateFormat NODE_DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-    public static final Platform DEFAULT_PLATFORM = Platform.UNIX;
-    private AmazonEC2Client client;
-    @VisibleForTesting AWSCredentials credentials;
-    private Properties awsProperties;
-    public static final int CHROME_THREAD_COUNT = 5;
-    public static final int FIREFOX_IE_THREAD_COUNT = 1;
-    private String region;
+    private static final Platform DEFAULT_PLATFORM = Platform.UNIX;
+    private AmazonEC2 client;
+    private AmazonEC2ClientBuilder clientBuilder;
 
+    @VisibleForTesting
+    AWSCredentials credentials;
+    Properties awsProperties;
+    String region;
+
+    // How many chrome browser processes are allowed per EC2 instance.
+    public static int CHROME_THREAD_COUNT = 5;
+    // How many firefox browser processes are allowed per EC2 instance.
+    public static int FIREFOX_IE_THREAD_COUNT = 1;
 
     static {
         // Read and write dates from node config in UTC format
@@ -83,32 +91,29 @@ public class AwsVmManager implements VmManager {
     public AwsVmManager() {
         awsProperties = initAWSProperties();
         this.region = awsProperties.getProperty("region");
-        /**
-         * By default we use the credentials provided in the configuration files.
-         * If there are none we fall back to IAM roles.
-         */
-        try {
-            credentials = getCredentials();
-            client = new AmazonEC2Client(credentials);
-        } catch (IllegalArgumentException e) {
-            log.info("Falling back to IAM roles for authorization since no credentials provided in system properties", e);
-            client = new AmazonEC2Client();
-        }
-        AwsVmManager.setRegion(client, awsProperties, region);
+		/*
+		  By default we use the credentials provided in the configuration files.
+		  If there are none we fall back to IAM roles.
+		 */
+        clientBuilder = AmazonEC2ClientBuilder.standard();
+
+        client = clientBuilder.withRegion(this.region).build();
     }
 
-    public static void setRegion(AmazonEC2Client client, Properties awsProperties, String region) {
-        client.setEndpoint(awsProperties.getProperty(region + "_endpoint"));
+    private static void setRegion(AwsClientBuilder clientBuilder, Properties awsProperties, String region) {
+        AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(
+                awsProperties.getProperty(region + "_endpoint"), region);
+        clientBuilder.setEndpointConfiguration(endpointConfiguration);
     }
 
     /**
      * Creates a new AwsVmManager instance.
      *
-     * @param  client {@link com.amazonaws.services.ec2.AmazonEC2Client Client} to use for AWS interaction
-     * @param  properties {@link java.util.Properties Properties} to use for EC2 config loading
-     * @param  region      Region inside of AWS to use
+     * @param client     {@link com.amazonaws.services.ec2.AmazonEC2Client Client} to use for AWS interaction
+     * @param properties {@link java.util.Properties Properties} to use for EC2 config loading
+     * @param region     Region inside of AWS to use
      */
-    public AwsVmManager(final AmazonEC2Client client, final Properties properties, final String region) {
+    public AwsVmManager(final AmazonEC2 client, final Properties properties, final String region) {
         this.client = client;
         this.awsProperties = properties;
         this.region = region;
@@ -118,7 +123,7 @@ public class AwsVmManager implements VmManager {
      * Initializes the AWS properties from the default properties file. Allows the user to override the default
      * properties if desired
      *
-     * @return
+     * @return AWS properties
      */
     Properties initAWSProperties() {
         Properties properties = new Properties();
@@ -147,7 +152,7 @@ public class AwsVmManager implements VmManager {
     }
 
     @VisibleForTesting
-    AmazonEC2Client getClient() {
+    AmazonEC2 getClient() {
         return client;
     }
 
@@ -194,43 +199,21 @@ public class AwsVmManager implements VmManager {
     }
 
     public List<Instance> launchNodes(final String amiId, final String instanceType, final int numberToStart,
-            final String userData, final boolean terminateOnShutdown) throws NodesCouldNotBeStartedException {
-        RunInstancesRequest runRequest = new RunInstancesRequest();
-        runRequest.withImageId(amiId).withInstanceType(instanceType).withMinCount(numberToStart)
-                  .withMaxCount(numberToStart).withUserData(userData);
-        if (terminateOnShutdown) {
-            runRequest.withInstanceInitiatedShutdownBehavior("terminate");
-        }
-
-        log.info("Setting image id: " + runRequest.getImageId());
-        log.info("Setting instance type: " + runRequest.getInstanceType());
+                                      final String userData, final boolean terminateOnShutdown) throws NodesCouldNotBeStartedException {
 
         Properties awsProperties = getAwsProperties();
+
         String subnetKey = awsProperties.getProperty(region + "_subnet_id");
-        if (subnetKey != null) {
-            log.info("Setting subnet: " + subnetKey);
-            runRequest.withSubnetId(subnetKey);
-        }
 
         String securityGroupKey = awsProperties.getProperty(region + "_security_group");
-        if (securityGroupKey != null) {
-
-            String[] splitSecurityGroupdIds = securityGroupKey.split(",");
-
-            List securityGroupIdsAryLst = new ArrayList();
-            for (int i = 0; i < splitSecurityGroupdIds.length; i++) {
-
-                log.info("Setting security group(s): " + splitSecurityGroupdIds[i]);
-                securityGroupIdsAryLst.add(splitSecurityGroupdIds[i]);
-            }
-            runRequest.setSecurityGroupIds(securityGroupIdsAryLst);
-        }
 
         String keyName = awsProperties.getProperty(region + "_key_name");
-        if (keyName != null) {
-            log.info("Setting keyname:" + keyName);
-            runRequest.withKeyName(keyName);
-        }
+
+        InstanceNetworkInterfaceSpecification interfaceSpecification = getNetworkInterface(subnetKey,
+                securityGroupKey);
+
+        RunInstancesRequest runRequest = getRunInstancesRequest(amiId, instanceType, numberToStart, userData,
+                terminateOnShutdown, keyName, interfaceSpecification);
 
         log.info("Sending run request to AWS...");
 
@@ -273,23 +256,62 @@ public class AwsVmManager implements VmManager {
         return this.launchNodes(amiId, instanceType, nodeCount, userData, false);
     }
 
+    protected RunInstancesRequest getRunInstancesRequest(String amiId, String instanceType, int numberToStart, String userData, boolean terminateOnShutdown, String keyName, InstanceNetworkInterfaceSpecification interfaceSpecification) {
+        RunInstancesRequest runRequest = new RunInstancesRequest();
+        runRequest.withImageId(amiId).withInstanceType(instanceType).withMinCount(numberToStart)
+                .withMaxCount(numberToStart).withUserData(userData).withNetworkInterfaces(interfaceSpecification);
+
+        if (terminateOnShutdown) {
+            runRequest.withInstanceInitiatedShutdownBehavior("terminate");
+        }
+
+        log.info("Setting image id: " + runRequest.getImageId());
+        log.info("Setting instance type: " + runRequest.getInstanceType());
+
+
+        if (keyName != null) {
+            log.info("Setting keyname:" + keyName);
+            runRequest.withKeyName(keyName);
+        }
+
+        log.info("Sending run request to AWS...");
+        return runRequest;
+    }
+
+    protected InstanceNetworkInterfaceSpecification getNetworkInterface(String subnetId, String securityGroupKey){
+
+        List securityGroupIdsAryLst = new ArrayList();
+        if (securityGroupKey != null) {
+            String[] splitSecurityGroupdIds = securityGroupKey.split(",");
+
+            for (int i = 0; i < splitSecurityGroupdIds.length; i++) {
+
+                log.info("Setting security group(s): " + splitSecurityGroupdIds[i]);
+                securityGroupIdsAryLst.add(splitSecurityGroupdIds[i]);
+            }
+        }
+        return new InstanceNetworkInterfaceSpecification()
+                .withAssociatePublicIpAddress(false)
+                .withDeviceIndex(0)
+                .withSubnetId(subnetId)
+                .withGroups(securityGroupIdsAryLst);
+    }
+
     /**
      * Attempts to run the {@link com.amazonaws.services.ec2.model.RunInstancesRequest RunInstancesRequest}, falling
      * back on alternative subnets if capacity is full in the current region.
      *
-     * @param   request
-     * @param   requestNumber
-     *
-     * @return
-     *
-     * @throws  NodesCouldNotBeStartedException
+     * @param request Run request
+     * @param requestNumber Request number
+     * @return RunInstancesResult
+     * @throws NodesCouldNotBeStartedException
      */
-    private RunInstancesResult getResults(final RunInstancesRequest request, int requestNumber)
-        throws NodesCouldNotBeStartedException {
+    protected RunInstancesResult getResults(final RunInstancesRequest request, int requestNumber)
+            throws NodesCouldNotBeStartedException {
         RunInstancesResult runInstancesResult;
         try {
-            AmazonEC2Client localClient = getClient();
-            if(localClient == null){
+            AmazonEC2 localClient = getClient();
+            if (localClient == null) {
                 throw new RuntimeException("The client is not initialized");
             }
             runInstancesResult = localClient.runInstances(request);
@@ -332,8 +354,8 @@ public class AwsVmManager implements VmManager {
     /**
      * Assigns the tags asynchronously to AWS.
      *
-     * @param  threadName
-     * @param  instances
+     * @param threadName
+     * @param instances
      */
     @VisibleForTesting
     void associateTags(final String threadName, final Collection<Instance> instances) {
@@ -344,12 +366,11 @@ public class AwsVmManager implements VmManager {
     /**
      * Gets the instance ID based on the OS that is chosen.
      *
-     * @param   platform       OS for the requested test run
-     * @param   browser  Browser for the requested test run
-     *
+     * @param platform OS for the requested test run
+     * @param browser  Browser for the requested test run
      * @return
      */
-    private String getAmiIdForOs(Platform platform, final String browser) {
+    protected String getAmiIdForOs(Platform platform, final String browser) {
         String requestedProperty;
         if (AutomationUtils.isPlatformWindows(platform) || browser.equals(BrowserType.IE)) {
             // We only want to run on Windows if the caller is specifically asking for it,
@@ -367,20 +388,20 @@ public class AwsVmManager implements VmManager {
     /**
      * Terminates the specified instance.
      *
-     * @param  instanceId  Id of the instance to terminate
+     * @param instanceId Id of the instance to terminate
      */
     public boolean terminateInstance(final String instanceId) {
         TerminateInstancesRequest terminateRequest = new TerminateInstancesRequest();
         terminateRequest.withInstanceIds(instanceId);
 
-        AmazonEC2Client localClient = getClient();
-        if(localClient == null){
+        AmazonEC2 localClient = getClient();
+        if (localClient == null) {
             throw new RuntimeException("The client is not initialized");
         }
         TerminateInstancesResult result;
-        try{
+        try {
             result = localClient.terminateInstances(terminateRequest);
-        } catch(AmazonServiceException ase) {
+        } catch (AmazonServiceException ase) {
             // If the node was terminated outside of this plugin, handle the error appropriately
             if (ase.getErrorCode().equals("InvalidInstanceID.NotFound")) {
                 log.error("Node not found when attempting to remove: " + instanceId);
@@ -422,19 +443,18 @@ public class AwsVmManager implements VmManager {
     /**
      * Returns a zip file containing the necessary user data for the images we're going to spin up.
      *
-     * @param   uuid         UUID of the test run
-     * @param   hubHostName  Resolvable host name of the hub the node will register with
-     * @param   browser      Browser for the requested test run
-     * @param   platform           OS for the requested test run
-     * @param   maxSessions  Maximum simultaneous test sessions
-     *
-     * @return
+     * @param uuid        UUID of the test run
+     * @param hubHostName Resolvable host name of the hub the node will register with
+     * @param browser     Browser for the requested test run
+     * @param platform    OS for the requested test run
+     * @param maxSessions Maximum simultaneous test sessions
+     * @return Zip file
      */
     @VisibleForTesting
     String getUserData(final String uuid, final String hubHostName, final String browser, final Platform platform,
-            final int maxSessions) {
+                       final int maxSessions) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-             ZipOutputStream zos = new ZipOutputStream(outputStream);
+             ZipOutputStream zos = new ZipOutputStream(outputStream)
         ) {
 
             // Pull the node config out so we can write it to the zip file
@@ -466,7 +486,7 @@ public class AwsVmManager implements VmManager {
     /**
      * Reads the hub.json file and returns its contents as a Base64-encoded string.
      *
-     * @return
+     * @return Node config
      */
     @VisibleForTesting
     String getNodeConfig(final String uuid, final String hostName, final String browser, final Platform platform,
@@ -494,15 +514,14 @@ public class AwsVmManager implements VmManager {
 
         // Pass in the created date so we can know when this node was spun up
         nodeConfig = nodeConfig.replaceAll("<CREATED_DATE>", AwsVmManager.NODE_DATE_FORMAT.format(createdDate));
-        String hubUrl = "http://"+hostName+":4444";
-        nodeConfig = nodeConfig.replaceFirst("<HOST_NAME>", hubUrl);
+        nodeConfig = nodeConfig.replaceFirst("<HOST_NAME>", hostName);
         return nodeConfig;
     }
 
     /**
      * Returns the S3 config file replaced with the appropriate AWS key/secret.
      *
-     * @return
+     * @return S3 config
      */
     @VisibleForTesting
     String getS3Config() {
@@ -517,9 +536,8 @@ public class AwsVmManager implements VmManager {
     /**
      * Returns the contents of the specified resource as a string.
      *
-     * @param   resourceName
-     *
-     * @return
+     * @param resourceName File resource name
+     * @return File contents
      */
     private static String getFileContents(final String resourceName) {
         String fileContents = "";

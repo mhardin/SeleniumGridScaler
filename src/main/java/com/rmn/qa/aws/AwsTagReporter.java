@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
@@ -35,11 +35,11 @@ public class AwsTagReporter extends Thread {
     private static final Logger log = LoggerFactory.getLogger(AwsTagReporter.class);
     static int TIMEOUT_IN_SECONDS = 10 * 1000;
 
-    private AmazonEC2Client ec2Client;
+    private AmazonEC2 ec2Client;
     private Collection<Instance> instances;
     private Properties awsProperties;
 
-    public AwsTagReporter(String testRunUuid, AmazonEC2Client ec2Client, Collection<Instance> instances, Properties awsProperties) {
+    public AwsTagReporter(String testRunUuid, AmazonEC2 ec2Client, Collection<Instance> instances, Properties awsProperties) {
         this.ec2Client = ec2Client;
         this.instances = instances;
         this.awsProperties = awsProperties;
@@ -49,12 +49,6 @@ public class AwsTagReporter extends Thread {
     @Override
     public void run() {
         log.info("AwsTagReporter thread initialized");
-        DescribeInstancesRequest request = new DescribeInstancesRequest();
-        Collection<String> instanceIds = new ArrayList<>();
-        for(Instance instance : instances) {
-            instanceIds.add(instance.getInstanceId());
-        }
-        request.withInstanceIds(instanceIds);
         long startTime = System.currentTimeMillis();
         boolean instancesFound = false;
         do{
@@ -63,7 +57,7 @@ public class AwsTagReporter extends Thread {
                 throw new RuntimeException("Error waiting for instances to exist to add tags");
             }
             try{
-                DescribeInstancesResult existingInstances = ec2Client.describeInstances(request);
+                DescribeInstancesResult existingInstances = getExistingInstances();
                 if(existingInstances.getReservations().get(0).getInstances().size() == instances.size()) {
                     log.info("Correct instances were found to add tags to!");
                     instancesFound = true;
@@ -90,7 +84,7 @@ public class AwsTagReporter extends Thread {
      * Associates the correct tags for each instance passed in
      * @param instances
      */
-    private void associateTags(Collection<Instance> instances) {
+    protected void associateTags(Collection<Instance> instances) {
         try{
             for(Instance instance : instances) {
                 log.info("Associating tags to instance: " + instance.getInstanceId());
@@ -128,5 +122,20 @@ public class AwsTagReporter extends Thread {
         tags.add(nodeTag);
         CreateTagsRequest ctr = new CreateTagsRequest(Arrays.asList(instanceId),tags);
         ec2Client.createTags(ctr);
+    }
+
+
+    /**
+     * Get existing EC2 instances.
+     * @return DescribeInstancesResult
+     */
+    protected DescribeInstancesResult getExistingInstances() {
+        DescribeInstancesRequest request = new DescribeInstancesRequest();
+        Collection<String> instanceIds = new ArrayList<>();
+        for(Instance instance : instances) {
+            instanceIds.add(instance.getInstanceId());
+        }
+        request.withInstanceIds(instanceIds);
+        return ec2Client.describeInstances(request);
     }
 }
