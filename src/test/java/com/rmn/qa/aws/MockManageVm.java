@@ -14,6 +14,7 @@ package com.rmn.qa.aws;
 
 import java.util.Properties;
 
+import com.amazonaws.services.ec2.AmazonEC2;
 import org.openqa.selenium.Platform;
 
 import com.amazonaws.auth.AWSCredentials;
@@ -29,11 +30,11 @@ public class MockManageVm extends AwsVmManager {
         super();
     }
 
-    public MockManageVm(AmazonEC2Client client, Properties properties, String region) {
+    public MockManageVm(AmazonEC2 client, Properties properties, String region) {
         super(client,properties,region);
     }
 
-    public MockManageVm(AmazonEC2Client client, Properties properties, String region, BasicAWSCredentials credentials) {
+    public MockManageVm(AmazonEC2 client, Properties properties, String region, BasicAWSCredentials credentials) {
         this(client, properties, region);
         this.credentials = credentials;
     }

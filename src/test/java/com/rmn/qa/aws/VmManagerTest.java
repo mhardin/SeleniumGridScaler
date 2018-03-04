@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
+import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.model.InstanceNetworkInterfaceSpecification;
 import org.apache.commons.collections4.CollectionUtils;
 import org.junit.After;
 import org.junit.Test;
@@ -39,7 +41,14 @@ import com.rmn.qa.NodesCouldNotBeStartedException;
 
 import junit.framework.Assert;
 
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class VmManagerTest extends BaseTest {
+
+    AwsVmManager manageEC2 = mock(AwsVmManager.class);
+    AmazonEC2 ec2 = mock(AmazonEC2.class);
 
     @After
     public void clear() {
@@ -51,12 +60,14 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test if an AWS access key is not set, the appropriate exception if thrown
     public void testAccessKeyNotSet() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         Properties properties = new Properties();
-        String region = "east";
-        AwsVmManager AwsVmManager = new AwsVmManager(client,properties,region);
+        properties.setProperty(AutomationConstants.INSTANCE_ID,"foo");
+
         try{
-            AwsVmManager.getCredentials();
+            manageEC2.awsProperties = properties;
+            when(manageEC2.getCredentials()).thenCallRealMethod();
+            when(manageEC2.getAwsProperties()).thenCallRealMethod();
+            manageEC2.getCredentials();
         } catch(IllegalArgumentException e) {
             Assert.assertTrue("Message should be related to access key", e.getMessage().contains(AutomationConstants.AWS_ACCESS_KEY));
             return;
@@ -67,13 +78,14 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test if an AWS private key is not set, the appropriate exception if thrown
     public void testPrivateKeyNotSet() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         Properties properties = new Properties();
         properties.setProperty(AutomationConstants.AWS_ACCESS_KEY,"foo");
-        String region = "east";
-        AwsVmManager AwsVmManager = new AwsVmManager(client,properties,region);
+
         try{
-            AwsVmManager.getCredentials();
+            manageEC2.awsProperties = properties;
+            when(manageEC2.getCredentials()).thenCallRealMethod();
+            when(manageEC2.getAwsProperties()).thenCallRealMethod();
+            manageEC2.getCredentials();
         } catch(IllegalArgumentException e) {
             Assert.assertTrue("Message should be related to access key: " + e.getMessage(), e.getMessage().contains(AutomationConstants.AWS_PRIVATE_KEY));
             return;
@@ -86,15 +98,17 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test if the AWS access and private key are set, everything works
     public void testKeysSet() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         Properties properties = new Properties();
         String accessKey = "foo",privateKey = "bar";
 
         properties.setProperty(AutomationConstants.AWS_ACCESS_KEY,accessKey);
         properties.setProperty(AutomationConstants.AWS_PRIVATE_KEY,privateKey);
-        String region = "east";
-        AwsVmManager AwsVmManager = new AwsVmManager(client,properties,region);
-        AWSCredentials credentials = AwsVmManager.getCredentials();
+
+        manageEC2.awsProperties = properties;
+        when(manageEC2.getCredentials()).thenCallRealMethod();
+        when(manageEC2.getAwsProperties()).thenCallRealMethod();
+
+        AWSCredentials credentials = manageEC2.getCredentials();
         Assert.assertEquals("Access key IDs should match",accessKey,credentials.getAWSAccessKeyId());
         Assert.assertEquals("Access key IDs should match",privateKey,credentials.getAWSSecretKey());
     }
@@ -102,7 +116,6 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test if System property access/private keys have priority over the property value ones
     public void testSystemPropertyPrecedence() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         Properties properties = new Properties();
         String accessKey = "foo",privateKey = "bar";
         System.setProperty(AutomationConstants.AWS_ACCESS_KEY, accessKey);
@@ -110,8 +123,13 @@ public class VmManagerTest extends BaseTest {
         properties.setProperty(AutomationConstants.AWS_ACCESS_KEY, "gibberish");
         properties.setProperty(AutomationConstants.AWS_PRIVATE_KEY,"moreGibberish");
         String region = "east";
-        AwsVmManager AwsVmManager = new com.rmn.qa.aws.AwsVmManager(client,properties,region);
-        AWSCredentials credentials = AwsVmManager.getCredentials();
+
+        manageEC2.awsProperties = properties;
+        when(manageEC2.getAwsProperties()).thenCallRealMethod();
+        when(manageEC2.getCredentials()).thenCallRealMethod();
+        when(manageEC2.getAwsProperties()).thenCallRealMethod();
+
+        AWSCredentials credentials = manageEC2.getCredentials();
         Assert.assertEquals("Access key IDs should match", accessKey, credentials.getAWSAccessKeyId());
         Assert.assertEquals("Access key IDs should match", privateKey, credentials.getAWSSecretKey());
     }
@@ -119,21 +137,26 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Happy path test flow for launching nodes
     public void testLaunchNodes() throws NodesCouldNotBeStartedException{
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
         Platform os = Platform.WINDOWS;
         Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+
         String userData = "userData";
-        manageEC2.setUserData(userData);
+
+        doCallRealMethod().when(manageEC2).getRunInstancesRequest(uuid,browser,threadCount,
+                userData,true,null, null);
+
+        RunInstancesRequest request = manageEC2.getRunInstancesRequest(uuid,browser,threadCount,
+                userData,true,null, null);
+
         manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
-        RunInstancesRequest request = client.getRunInstancesRequest();
+
         Assert.assertEquals("Min count should match thread count requested", threadCount, request.getMinCount());
         Assert.assertEquals("Max count should match thread count requested", threadCount, request.getMaxCount());
         Assert.assertEquals("User data should match", userData, request.getUserData());
@@ -145,51 +168,75 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test the optional fields for launching a node are indeed optional
     public void testLaunchNodesOptionalFieldsSet()  throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
         Platform os = null;
         Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+
+        AwsVmManager manageEC2 = mock(AwsVmManager.class);
         String userData = "userData";
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",linuxImage="linuxImage";
         properties.setProperty(region + "_security_group",securityGroup);
         properties.setProperty(region + "_subnet_id",subnetId);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_linux_node_ami", linuxImage);
-        manageEC2.setUserData(userData);
-        manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
-        RunInstancesRequest request = client.getRunInstancesRequest();
+        manageEC2.region = region;
+
+        doCallRealMethod().when(manageEC2).getAmiIdForOs(Platform.LINUX, browser);
+
+        when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+        String amiId, imageId, securityGroupKey, requestKeyName;
+
+        amiId = manageEC2.getAmiIdForOs(Platform.LINUX, browser);
+        imageId = manageEC2.getAwsProperties().getProperty(amiId);
+        securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+        requestKeyName = manageEC2.getAwsProperties().getProperty(region + "_key_name");
+
+        when(manageEC2.launchNodes(imageId,os,browser,null,threadCount,maxSessions)).thenReturn(runInstancesResult.getReservation().getInstances());
+
+        when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+
+        InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId, securityGroupKey);
+
+        doCallRealMethod().when(manageEC2).getRunInstancesRequest(imageId,browser,threadCount,
+                userData,true,requestKeyName, networkSpec);
+
+        RunInstancesRequest request = manageEC2.getRunInstancesRequest(imageId,browser,threadCount,
+                userData,true,requestKeyName, networkSpec);
+
+        manageEC2.launchNodes(imageId,os,browser,null,threadCount,maxSessions);
+
         Assert.assertEquals("Min count should match thread count requested",threadCount,request.getMinCount());
         Assert.assertEquals("Max count should match thread count requested",threadCount,request.getMaxCount());
         Assert.assertEquals("User data should match",userData,request.getUserData());
         Assert.assertEquals("Image id should match",linuxImage,request.getImageId());
-        List<String> securityGroups = request.getSecurityGroupIds();
+        List<String> securityGroups = request.getNetworkInterfaces().get(0).getGroups();
         Assert.assertEquals("Only one security group should be set",1,securityGroups.size());
         Assert.assertEquals("Only one security group should be set", securityGroup, securityGroups.get(0));
-        Assert.assertEquals("Subnet ids should match", subnetId, request.getSubnetId());
+        Assert.assertEquals("Subnet ids should match", subnetId, request.getNetworkInterfaces().get(0).getSubnetId());
         Assert.assertEquals("Key names should match", keyName, request.getKeyName());
     }
 
     @Test
     // Test if multiple security groups can be passed when launching a node
     public void testLaunchNodesMultipleSecurityGroups()  throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
         Platform os = Platform.ANY;
         Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+
+        AwsVmManager manageEC2 = mock(AwsVmManager.class);
         String userData = "userData";
         String securityGroup="securityGroup1,securityGroup2,securityGroup3",subnetId="subnetId",keyName="keyName",linuxImage="linuxImage";
         String[] splitSecurityGroupdIds = securityGroup.split(",");
@@ -204,77 +251,114 @@ public class VmManagerTest extends BaseTest {
         properties.setProperty(region + "_subnet_id",subnetId);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_linux_node_ami", linuxImage);
-        manageEC2.setUserData(userData);
-        manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
-        RunInstancesRequest request = client.getRunInstancesRequest();
-        request.setSecurityGroupIds(securityGroupIdsAryLst);
-        List<String> securityGroups = request.getSecurityGroupIds();
+
+        when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+        String securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+
+
+        when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+
+        InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId, securityGroupKey);
+
+        doCallRealMethod().when(manageEC2).getRunInstancesRequest(uuid,browser,threadCount,
+                userData,true,null, networkSpec);
+
+        RunInstancesRequest request = manageEC2.getRunInstancesRequest(uuid,browser,threadCount,
+                userData,true,null, networkSpec);
+
+
+        List<String> securityGroups = request.getNetworkInterfaces().get(0).getGroups();
         List<String> expectedSecurityGroups = Arrays.asList("securityGroup1,securityGroup2,securityGroup3".split(","));
         Assert.assertTrue("Security groups should match all given security groups", securityGroups.containsAll(expectedSecurityGroups));
 
         List<String> invalidSecurityGroups = Arrays.asList("securityGroup1,securityGroup2,securityGroup7".split(","));
         Assert.assertFalse("Security groups should match only the set security groups", securityGroups.containsAll(invalidSecurityGroups));
 
-        Assert.assertFalse("Security group should not be empty", request.getSecurityGroupIds().isEmpty());
+        Assert.assertFalse("Security group should not be empty", request.getNetworkInterfaces().get(0).getGroups().isEmpty());
         Assert.assertEquals("More than 1 security group should be set",3,securityGroups.size());
     }
 
     @Test
     // Test launching an IE node works correctly
     public void testLaunchNodesIe()  throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="internet explorer";
         Platform os = null;
         Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        AwsVmManager manageEC2 = mock(AwsVmManager.class);
         String userData = "userData";
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",windowsImage="windowsImage";
         properties.setProperty(region + "_security_group",securityGroup);
         properties.setProperty(region + "_subnet_id",subnetId);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_windows_node_ami", windowsImage);
-        manageEC2.setUserData(userData);
-        manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
-        RunInstancesRequest request = client.getRunInstancesRequest();
+        //manageEC2.setUserData(userData);
+        manageEC2.region = region;
+
+        when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+        when(manageEC2.getAmiIdForOs(Platform.WINDOWS, browser)).thenCallRealMethod();
+
+        String amiId =  manageEC2.getAmiIdForOs(Platform.WINDOWS, browser);
+
+        String imageId = manageEC2.getAwsProperties().getProperty(amiId);
+
+        String securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+
+        when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+
+        InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId, securityGroupKey);
+
+        doCallRealMethod().when(manageEC2).getRunInstancesRequest(imageId,browser,threadCount,
+                userData,true,keyName, networkSpec);
+
+        doCallRealMethod().when(manageEC2).getRunInstancesRequest(imageId,browser,threadCount,
+                userData,true,keyName, networkSpec);
+
+        //when(manageEC2.getRunInstancesRequest(imageId,browser,threadCount,
+        //        userData,true,keyName, networkSpec)).thenCallRealMethod();
+
+        RunInstancesRequest request = manageEC2.getRunInstancesRequest(imageId,browser,threadCount,
+                userData,true,keyName, networkSpec);
+
         Assert.assertEquals("Min count should match thread count requested",threadCount,request.getMinCount());
         Assert.assertEquals("Max count should match thread count requested",threadCount,request.getMaxCount());
         Assert.assertEquals("User data should match",userData,request.getUserData());
         Assert.assertEquals("Image id should match",windowsImage,request.getImageId());
-        List<String> securityGroups = request.getSecurityGroupIds();
+        List<String> securityGroups = request.getNetworkInterfaces().get(0).getGroups();
         Assert.assertEquals("Only one security group should be set",1,securityGroups.size());
         Assert.assertEquals("Only one security group should be set", securityGroup, securityGroups.get(0));
-        Assert.assertEquals("Subnet ids should match", subnetId, request.getSubnetId());
+        Assert.assertEquals("Subnet ids should match", subnetId, request.getNetworkInterfaces().get(0).getSubnetId());
         Assert.assertEquals("Key names should match", keyName, request.getKeyName());
     }
 
     @Test
     // Test if a bad OS is specified, it is handled correctly
     public void testLaunchNodesBadOs()  throws NodesCouldNotBeStartedException{
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
         Platform os = Platform.MAC;
         Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
-        String userData = "userData";
+
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",windowsImage="windowsImage";
         properties.setProperty(region + "_security_group",securityGroup);
         properties.setProperty(region + "_subnet_id", subnetId);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_windows_node_ami", windowsImage);
-        manageEC2.setUserData(userData);
+
         try{
+            when(manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions)).thenCallRealMethod();
             manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
         } catch(RuntimeException e) {
             Assert.assertTrue("Failure message should be correct",e.getMessage().contains(os.toString()));
@@ -286,20 +370,23 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test terminating instances works correctly
     public void testTerminateInstance() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         String instanceId="foo";
         TerminateInstancesResult terminateInstancesResult = new TerminateInstancesResult();
-        client.setTerminateInstancesResult(terminateInstancesResult);
+
         InstanceStateChange stateChange = new InstanceStateChange();
         stateChange.withInstanceId(instanceId);
         stateChange.setCurrentState(new InstanceState().withCode(32));
         terminateInstancesResult.setTerminatingInstances(Arrays.asList(stateChange));
         Properties properties = new Properties();
-        String region = "east";
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+
+        when(manageEC2.getClient()).thenReturn(ec2);
+        when(manageEC2.terminateInstance(instanceId)).thenCallRealMethod();
+        TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instanceId);
+        when(ec2.terminateInstances(request)).thenReturn(terminateInstancesResult);
 
         boolean success = manageEC2.terminateInstance(instanceId);
-        TerminateInstancesRequest request = client.getTerminateInstancesRequest();
+
+        //TerminateInstancesRequest request = amazonEc2.getTerminateInstancesRequest();
         Assert.assertEquals("Instance id size should match", 1, request.getInstanceIds().size());
         Assert.assertEquals("Instance ids should match", instanceId, request.getInstanceIds().get(0));
         Assert.assertTrue("Termination call should have been successful", success);
@@ -308,20 +395,21 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Tests terminating an invalid instance is handled correctly
     public void testTerminateInstanceInvalidRunningCode() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         String instanceId="foo";
         TerminateInstancesResult terminateInstancesResult = new TerminateInstancesResult();
-        client.setTerminateInstancesResult(terminateInstancesResult);
+
         InstanceStateChange stateChange = new InstanceStateChange();
         stateChange.withInstanceId(instanceId);
         stateChange.setCurrentState(new InstanceState().withCode(8));
         terminateInstancesResult.setTerminatingInstances(Arrays.asList(stateChange));
         Properties properties = new Properties();
-        String region = "east";
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+
+        when(manageEC2.getClient()).thenReturn(ec2);
+        when(manageEC2.terminateInstance(instanceId)).thenCallRealMethod();
+        TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instanceId);
+        when(ec2.terminateInstances(request)).thenReturn(terminateInstancesResult);
 
         boolean success = manageEC2.terminateInstance(instanceId);
-        TerminateInstancesRequest request = client.getTerminateInstancesRequest();
         Assert.assertEquals("Instance id size should match", 1, request.getInstanceIds().size());
         Assert.assertEquals("Instance ids should match", instanceId, request.getInstanceIds().get(0));
         Assert.assertFalse("Termination call should have not been successful", success);
@@ -330,20 +418,20 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test terminating a valid but not matching instances is handled correctly
     public void testTerminateInstanceNoMatchingInstance() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         String instanceId="foo";
         TerminateInstancesResult terminateInstancesResult = new TerminateInstancesResult();
-        client.setTerminateInstancesResult(terminateInstancesResult);
+
         InstanceStateChange stateChange = new InstanceStateChange();
         stateChange.withInstanceId("notMatching");
         stateChange.setCurrentState(new InstanceState().withCode(8));
         terminateInstancesResult.setTerminatingInstances(Arrays.asList(stateChange));
-        Properties properties = new Properties();
-        String region = "east";
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+
+        when(manageEC2.getClient()).thenReturn(ec2);
+        when(manageEC2.terminateInstance(instanceId)).thenCallRealMethod();
+        TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instanceId);
+        when(ec2.terminateInstances(request)).thenReturn(terminateInstancesResult);
 
         boolean success = manageEC2.terminateInstance(instanceId);
-        TerminateInstancesRequest request = client.getTerminateInstancesRequest();
         Assert.assertEquals("Instance id size should match", 1, request.getInstanceIds().size());
         Assert.assertEquals("Instance ids should match", instanceId, request.getInstanceIds().get(0));
         Assert.assertFalse("Termination call should have not been successful", success);
@@ -352,17 +440,16 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Tests that the terminate code works when no matching results are returned by the client
     public void testTerminateInstanceNoInstanceEmpty() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         String instanceId="foo";
         TerminateInstancesResult terminateInstancesResult = new TerminateInstancesResult();
-        client.setTerminateInstancesResult(terminateInstancesResult);
-        terminateInstancesResult.setTerminatingInstances(Collections.unmodifiableList(new ArrayList<InstanceStateChange>(0)));
-        Properties properties = new Properties();
-        String region = "east";
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        terminateInstancesResult.setTerminatingInstances(CollectionUtils.EMPTY_COLLECTION);
+
+        when(manageEC2.getClient()).thenReturn(ec2);
+        when(manageEC2.terminateInstance(instanceId)).thenCallRealMethod();
+        TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instanceId);
+        when(ec2.terminateInstances(request)).thenReturn(terminateInstancesResult);
 
         boolean success = manageEC2.terminateInstance(instanceId);
-        TerminateInstancesRequest request = client.getTerminateInstancesRequest();
         Assert.assertEquals("Instance id size should match",1,request.getInstanceIds().size());
         Assert.assertEquals("Instance ids should match", instanceId, request.getInstanceIds().get(0));
         Assert.assertFalse("Termination call should have not been successful", success);
@@ -371,17 +458,19 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Tests that the s3 config file gets injected with the correct values
     public void testS3Config() {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         Properties properties = new Properties();
         String accessKey = "foo",privateKey = "bar";
 
         properties.setProperty(AutomationConstants.AWS_ACCESS_KEY, accessKey);
         properties.setProperty(AutomationConstants.AWS_PRIVATE_KEY, privateKey);
+        manageEC2.awsProperties = properties;
 
-        String region = "east";
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        when(manageEC2.getAwsProperties()).thenCallRealMethod();
+        when(manageEC2.getCredentials()).thenCallRealMethod();
+        when(manageEC2.getS3Config()).thenCallRealMethod();
+
         AWSCredentials credentials = manageEC2.getCredentials();
-        manageEC2.setCredentials(credentials);
+        manageEC2.credentials = credentials;
         String s3Config = manageEC2.getS3Config();
         Assert.assertTrue("Access key should have been injected into the file", s3Config.contains(accessKey));
         Assert.assertTrue("Private key should have been injected into the file", s3Config.contains(privateKey));
@@ -394,7 +483,7 @@ public class VmManagerTest extends BaseTest {
 
         System.setProperty(AutomationConstants.AWS_ACCESS_KEY,accessKey);
         System.setProperty(AutomationConstants.AWS_PRIVATE_KEY,privateKey);
-        MockManageVm manageEC2 = new MockManageVm();
+        AwsVmManager vmManager = new AwsVmManager();
     }
 
     @Test
@@ -403,7 +492,7 @@ public class VmManagerTest extends BaseTest {
         String path = "src/main/resources/" + AutomationConstants.AWS_DEFAULT_RESOURCE_NAME;
         path.replace("/", File.separator);
         System.setProperty("propertyFileLocation",path);
-        MockManageVm manageEC2 = new MockManageVm(null,null,null);
+        when(manageEC2.initAWSProperties()).thenCallRealMethod();
         Properties retrievedProperties = manageEC2.initAWSProperties();
         File f = new File(path);
         Properties compareProperties = new Properties();
@@ -420,9 +509,8 @@ public class VmManagerTest extends BaseTest {
     // Test that an incorrectly set properties file throws the appropriate exception
     public void testInvalidCustomProperty() {
         System.setProperty("propertyFileLocation","bogus");
-        MockManageVm manageEC2 = new MockManageVm(null,null,null);
         try{
-
+            when(manageEC2.initAWSProperties()).thenCallRealMethod();
             manageEC2.initAWSProperties();
         } catch(RuntimeException e) {
             Assert.assertEquals("Could not load custom aws.properties",e.getMessage());
@@ -434,10 +522,10 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test that the correct node config file is generated for a windows os
     public void testGetNodeConfigWindows() {
-        MockManageVm manageEC2 = new MockManageVm(null,null,null);
-        String uuid="uuid",hostName="hostName",browser="chrome";
+        String uuid="uuid",hostName="hostName",browser="edge";
         Platform os = Platform.WINDOWS;
         int maxSessions = 5;
+        when(manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions)).thenCallRealMethod();
         String nodeConfig = manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions);
         Assert.assertTrue("Max sessions should have been passed in",nodeConfig.contains(String.valueOf(maxSessions)));
         Assert.assertTrue("UUID should have been passed in",nodeConfig.contains(uuid));
@@ -450,10 +538,11 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test that the correct node config file is generated for a linux os
     public void testGetNodeConfigLinux() {
-        MockManageVm manageEC2 = new MockManageVm(null,null,null);
         String uuid="uuid",hostName="hostName",browser="chrome";
         Platform os = Platform.LINUX;
         int maxSessions = 5;
+
+        when(manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions)).thenCallRealMethod();
         String nodeConfig = manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions);
         Assert.assertTrue("Max sessions should have been passed in",nodeConfig.contains(String.valueOf(maxSessions)));
         Assert.assertTrue("UUID should have been passed in",nodeConfig.contains(uuid));
@@ -466,11 +555,12 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test that the correct exception is throw when you specified a bad OS for the node config
     public void testGetNodeConfigBadOs() {
-        MockManageVm manageEC2 = new MockManageVm(null,null,null);
         String uuid="uuid",hostName="hostName",browser="chrome";
         Platform os = Platform.MAC;
         int maxSessions = 5;
+
         try{
+            when(manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions)).thenCallRealMethod();
             manageEC2.getNodeConfig(uuid,hostName,browser,os,maxSessions);
         } catch(RuntimeException e) {
             Assert.assertTrue("Failure message should be correct",e.getMessage().contains(os.toString()));
@@ -482,29 +572,48 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Tests that if no fallback subnets are specified, the correct exception is thrown
     public void testSubnetNoFallBack() throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         AmazonServiceException exception = new AmazonServiceException("message");
         exception.setErrorCode("InsufficientInstanceCapacity");
-        client.setThrowDescribeInstancesError(exception);
+
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
-        Platform os = Platform.LINUX;
-        Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        Integer threadCount = 5;
+
         String userData = "userData";
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",windowsImage="windowsImage";
         properties.setProperty(region + "_security_group",securityGroup);
         properties.setProperty(region + "_subnet_id", subnetId);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_windows_node_ami", windowsImage);
-        manageEC2.setUserData(userData);
+
+        manageEC2.region = region;
+
         try{
-            manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
+
+            when(manageEC2.getClient()).thenReturn(ec2);
+            when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+            String securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+
+
+            when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+            InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId,
+                    securityGroupKey);
+
+            doCallRealMethod().when(manageEC2).getRunInstancesRequest(uuid,browser,threadCount,
+                    userData,true,keyName, networkSpec);
+            RunInstancesRequest request = manageEC2.getRunInstancesRequest(uuid,browser,threadCount,
+                    userData,true,keyName, networkSpec);
+
+            when(manageEC2.getResults(request, 1)).thenCallRealMethod();
+            when(manageEC2.getClient().runInstances(request)).thenThrow(exception);
+
+            manageEC2.getResults(request, 1);
         } catch(NodesCouldNotBeStartedException e) {
             Assert.assertTrue("Failure message should be correct",e.getMessage().contains("Sufficient resources were not available in any of the availability zones"));
             return;
@@ -515,20 +624,19 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Test that if a fallback subnet is specified, that the request for new nodes will fallback successfully and nodes will be spun up
     public void testSubnetFallsBackSuccessfully() throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         AmazonServiceException exception = new AmazonServiceException("message");
         exception.setErrorCode("InsufficientInstanceCapacity");
-        client.setThrowDescribeInstancesError(exception);
+
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
         Platform os = Platform.LINUX;
-        Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        Integer threadCount = 5;
+
         String userData = "userData";
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",windowsImage="windowsImage",fallBackSubnet="fallback";
         properties.setProperty(region + "_security_group",securityGroup);
@@ -536,36 +644,70 @@ public class VmManagerTest extends BaseTest {
         properties.setProperty(region + "_subnet_fallback_id_1", fallBackSubnet);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_windows_node_ami", windowsImage);
-        manageEC2.setUserData(userData);
-        List<Instance> instances = manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
-        System.out.print("");
+
+        manageEC2.region = region;
+
+        when(manageEC2.getClient()).thenReturn(ec2);
+        when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+        String securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+
+        when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+        InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId,
+                securityGroupKey);
+
+        doCallRealMethod().when(manageEC2).getRunInstancesRequest(uuid,browser,threadCount,
+                userData,true,keyName, networkSpec);
+        RunInstancesRequest request = manageEC2.getRunInstancesRequest(uuid,browser,threadCount,
+                userData,true,keyName, networkSpec);
+
+        when(manageEC2.getResults(request, 0)).thenCallRealMethod();
+        when(manageEC2.getClient().runInstances(request)).thenThrow(exception);
+
+        manageEC2.getResults(request, 0);
     }
 
     @Test
     // Tests that if the client fails for an error other than insufficient capacity, subnet fallback logic is not performed
     public void testSubnetFallBackUnknownError() throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
         AmazonServiceException exception = new AmazonServiceException("message");
-        client.setThrowDescribeInstancesError(exception);
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
-        Platform os = Platform.LINUX;
-        Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        Integer threadCount = 5;
+        AwsVmManager manageEC2 = mock(AwsVmManager.class);
         String userData = "userData";
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",windowsImage="windowsImage";
         properties.setProperty(region + "_security_group",securityGroup);
         properties.setProperty(region + "_subnet_id", subnetId);
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_windows_node_ami", windowsImage);
-        manageEC2.setUserData(userData);
+
         try{
-            manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
+            manageEC2.region = region;
+
+            when(manageEC2.getClient()).thenReturn(ec2);
+            when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+            String securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+
+            when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+            InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId,
+                    securityGroupKey);
+
+            doCallRealMethod().when(manageEC2).getRunInstancesRequest(uuid,browser,threadCount,
+                    userData,true,keyName, networkSpec);
+            RunInstancesRequest request = manageEC2.getRunInstancesRequest(uuid,browser,threadCount,
+                    userData,true,keyName, networkSpec);
+
+            when(manageEC2.getResults(request, 0)).thenCallRealMethod();
+            when(manageEC2.getClient().runInstances(request)).thenThrow(exception);
+
+            manageEC2.getResults(request, 0);
         } catch(AmazonServiceException e) {
             Assert.assertEquals("Exception should be the same",exception,e);
             return;
@@ -576,21 +718,18 @@ public class VmManagerTest extends BaseTest {
     @Test
     // Tests that the built in guard against an infinite loop in the fallback recursive logic has a working safeguard
     public void testSubnetInfiniteLoop() throws NodesCouldNotBeStartedException {
-        MockAmazonEc2Client client = new MockAmazonEc2Client(null);
-        client.setThrowExceptionsInRunInstancesIndefinitely();
         AmazonServiceException exception = new AmazonServiceException("message");
         exception.setErrorCode("InsufficientInstanceCapacity");
-        client.setThrowDescribeInstancesError(exception);
+
         RunInstancesResult runInstancesResult = new RunInstancesResult();
         Reservation reservation = new Reservation();
         reservation.setInstances(Arrays.asList(new Instance()));
         runInstancesResult.setReservation(reservation);
-        client.setRunInstances(runInstancesResult);
+
         Properties properties = new Properties();
         String region = "east", uuid="uuid",browser="chrome";
-        Platform os = Platform.LINUX;
-        Integer threadCount = 5,maxSessions=5;
-        MockManageVm manageEC2 = new MockManageVm(client,properties,region);
+        Integer threadCount = 5;
+        AwsVmManager manageEC2 = mock(AwsVmManager.class);
         String userData = "userData";
         String securityGroup="securityGroup",subnetId="subnetId",keyName="keyName",windowsImage="windowsImage";
         properties.setProperty(region + "_security_group",securityGroup);
@@ -603,9 +742,40 @@ public class VmManagerTest extends BaseTest {
         properties.setProperty(region + "_subnet_fallback_id_6", "foo");
         properties.setProperty(region + "_key_name", keyName);
         properties.setProperty(region + "_windows_node_ami", windowsImage);
-        manageEC2.setUserData(userData);
+
         try{
-            manageEC2.launchNodes(uuid,os,browser,null,threadCount,maxSessions);
+            manageEC2.region = region;
+
+            when(manageEC2.getClient()).thenReturn(ec2);
+            when(manageEC2.getAwsProperties()).thenReturn(properties);
+
+            String securityGroupKey = manageEC2.getAwsProperties().getProperty(region + "_security_group");
+
+            when(manageEC2.getNetworkInterface(subnetId,securityGroupKey)).thenCallRealMethod();
+            InstanceNetworkInterfaceSpecification networkSpec = manageEC2.getNetworkInterface(subnetId,
+                    securityGroupKey);
+
+            doCallRealMethod().when(manageEC2).getRunInstancesRequest(uuid,browser,threadCount,
+                    userData,true,keyName, networkSpec);
+
+            RunInstancesRequest request = manageEC2.getRunInstancesRequest(uuid,browser,threadCount,
+                    userData,true,keyName, networkSpec);
+
+            when(manageEC2.getResults(request, 0)).thenCallRealMethod();
+            when(manageEC2.getResults(request, 1)).thenCallRealMethod();
+            when(manageEC2.getResults(request, 2)).thenCallRealMethod();
+            when(manageEC2.getResults(request, 3)).thenCallRealMethod();
+            when(manageEC2.getResults(request, 4)).thenCallRealMethod();
+            when(manageEC2.getResults(request, 5)).thenCallRealMethod();
+
+            when(manageEC2.getClient().runInstances(request)).thenThrow(exception);
+
+            manageEC2.getResults(request, 0);
+            manageEC2.getResults(request, 1);
+            manageEC2.getResults(request, 2);
+            manageEC2.getResults(request, 3);
+            manageEC2.getResults(request, 4);
+            manageEC2.getResults(request, 5);
         } catch(NodesCouldNotBeStartedException e) {
             Assert.assertTrue("Failure message should be correct",e.getMessage().contains("Sufficient resources were not available in any of the availability zones"));
             return;
@@ -631,11 +801,14 @@ public class VmManagerTest extends BaseTest {
         Properties properties = new Properties();
         properties.setProperty(AutomationConstants.AWS_ACCESS_KEY,accessKey);
         properties.setProperty(AutomationConstants.AWS_PRIVATE_KEY,privateKey);
-        String region = "east";
-
-        AwsVmManager manageEC2 = new AwsVmManager(null,properties,region);
 
         try{
+            manageEC2.awsProperties = properties;
+            when(manageEC2.getCredentials()).thenCallRealMethod();
+            when(manageEC2.getAwsProperties()).thenCallRealMethod();
+            when(manageEC2.getClient()).thenReturn(null);
+            when(manageEC2.getResults(null,0)).thenCallRealMethod();
+            when(manageEC2.launchNodes("foo", "bar", 3, "userData", false)).thenCallRealMethod();
             manageEC2.launchNodes("foo", "bar", 3, "userData", false);
         } catch(Exception e) {
             Assert.assertTrue("The client should be initialized", e.getMessage().contains("The client is not initialized"));
