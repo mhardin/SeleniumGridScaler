@@ -11,13 +11,9 @@
  */
 package com.rmn.qa;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+import com.rmn.qa.aws.VmManager;
 import org.openqa.grid.internal.ProxySet;
 import org.openqa.grid.internal.RemoteProxy;
 import org.openqa.grid.internal.TestSession;
@@ -25,9 +21,7 @@ import org.openqa.grid.internal.TestSlot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
-import com.rmn.qa.aws.VmManager;
+import java.util.*;
 
 /**
  * Context object used to keep track of registered runs and dynamic nodes.
@@ -395,7 +389,7 @@ public final class AutomationRunContext {
                         // Most test runs should have their test run UUID in the capabilities.  This makes it easy to
                         // line up tests with their run requests
                         if (testSession.getRequestedCapabilities().containsKey(AutomationConstants.UUID)) {
-                            String uuid = (String) testSession.getRequestedCapabilities().get(AutomationConstants.UUID);
+                            String uuid = String.valueOf(testSession.getRequestedCapabilities().get(AutomationConstants.UUID));
                             Integer existingRuns = runsToSessions.get(uuid);
                             if (existingRuns == null) {
                                 runsToSessions.put(uuid, 1);
